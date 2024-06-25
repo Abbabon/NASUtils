@@ -28,10 +28,10 @@ def organize_files_by_date(input_path, output_parent_path):
                 logging.info(f"Skipping file {file} because it contains '@'")
                 continue
             
-            # Get the file creation time
-            created_time = datetime.fromtimestamp(file.stat().st_ctime)
-            year = created_time.strftime('%Y')
-            month = created_time.strftime('%m')
+            # Get the file modification time
+            modified_time = datetime.fromtimestamp(file.stat().st_mtime)
+            year = modified_time.strftime('%Y')
+            month = modified_time.strftime('%m')
             
             # Create the destination directory path
             dest_dir = output_parent_path / year / month
