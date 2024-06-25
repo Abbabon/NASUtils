@@ -21,7 +21,7 @@ def organize_files_by_date(input_path, output_parent_path):
         logging.error(f"Output parent path {output_parent_path} does not exist.")
         return
     
-    for file in input_path.glob('*'):
+    for file in input_path.rglob('*'):
         if file.is_file():
             # Get the file creation time
             created_time = datetime.fromtimestamp(file.stat().st_ctime)
