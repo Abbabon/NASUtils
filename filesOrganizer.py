@@ -23,6 +23,11 @@ def organize_files_by_date(input_path, output_parent_path):
     
     for file in input_path.rglob('*'):
         if file.is_file():
+            # Skip files containing '@' in their name
+            if '@' in file.name:
+                logging.info(f"Skipping file {file} because it contains '@'")
+                continue
+            
             # Get the file creation time
             created_time = datetime.fromtimestamp(file.stat().st_ctime)
             year = created_time.strftime('%Y')
