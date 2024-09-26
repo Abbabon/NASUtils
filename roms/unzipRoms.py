@@ -1,6 +1,7 @@
 import os
 import zipfile
 import logging
+import sys
 
 def unzip_files(directory):
     # Set up logging to file and console
@@ -30,10 +31,21 @@ def unzip_files(directory):
                 except Exception as e:
                     logging.error(f"Error processing {file_path}: {str(e)}")
 
-# Specify the directory
-rom_directory = "/Volumes/Emulation/RomPacks/GB"
+def main():
+    if len(sys.argv) != 2:
+        print("Usage: python unzipRoms.py <directory_path>")
+        sys.exit(1)
 
-# Call the function to unzip files
-unzip_files(rom_directory)
+    rom_directory = sys.argv[1]
 
-print("Unzipping process completed. Check unzip_log.txt for details.")
+    if not os.path.isdir(rom_directory):
+        print(f"Error: '{rom_directory}' is not a valid directory.")
+        sys.exit(1)
+
+    # Call the function to unzip files
+    unzip_files(rom_directory)
+
+    print("Unzipping process completed. Check unzip_log.txt for details.")
+
+if __name__ == "__main__":
+    main()
