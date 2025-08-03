@@ -4,3 +4,10 @@
 
 # Logs
 *_log.txt
+
+# YouTube downloads
+downloads/
+formats.txt
+
+# OS
+.DS_Store
