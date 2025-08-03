@@ -43,6 +43,91 @@ grep 'audio only' formats.txt
 # extract best quality video format
 v_id=$(grep 'video only' formats.txt | tail -n1 | awk '{print $1}')
 
+# Language code to full name mapping
+get_language_name() {
+  case "$1" in
+    "en") echo "English" ;;
+    "es") echo "Spanish" ;;
+    "fr") echo "French" ;;
+    "de") echo "German" ;;
+    "it") echo "Italian" ;;
+    "pt") echo "Portuguese" ;;
+    "ru") echo "Russian" ;;
+    "zh") echo "Chinese" ;;
+    "ja") echo "Japanese" ;;
+    "ko") echo "Korean" ;;
+    "ar") echo "Arabic" ;;
+    "hi") echo "Hindi" ;;
+    "he"|"iw") echo "Hebrew" ;;
+    "nl") echo "Dutch" ;;
+    "sv") echo "Swedish" ;;
+    "no") echo "Norwegian" ;;
+    "da") echo "Danish" ;;
+    "fi") echo "Finnish" ;;
+    "pl") echo "Polish" ;;
+    "cs") echo "Czech" ;;
+    "sk") echo "Slovak" ;;
+    "hu") echo "Hungarian" ;;
+    "ro") echo "Romanian" ;;
+    "bg") echo "Bulgarian" ;;
+    "hr") echo "Croatian" ;;
+    "sr") echo "Serbian" ;;
+    "sl") echo "Slovenian" ;;
+    "et") echo "Estonian" ;;
+    "lv") echo "Latvian" ;;
+    "lt") echo "Lithuanian" ;;
+    "uk") echo "Ukrainian" ;;
+    "be") echo "Belarusian" ;;
+    "mk") echo "Macedonian" ;;
+    "sq") echo "Albanian" ;;
+    "el") echo "Greek" ;;
+    "tr") echo "Turkish" ;;
+    "ca") echo "Catalan" ;;
+    "eu") echo "Basque" ;;
+    "gl") echo "Galician" ;;
+    "cy") echo "Welsh" ;;
+    "ga") echo "Irish" ;;
+    "is") echo "Icelandic" ;;
+    "mt") echo "Maltese" ;;
+    "th") echo "Thai" ;;
+    "vi") echo "Vietnamese" ;;
+    "id") echo "Indonesian" ;;
+    "ms") echo "Malay" ;;
+    "tl") echo "Filipino" ;;
+    "sw") echo "Swahili" ;;
+    "am") echo "Amharic" ;;
+    "yo") echo "Yoruba" ;;
+    "zu") echo "Zulu" ;;
+    "af") echo "Afrikaans" ;;
+    "fa") echo "Persian" ;;
+    "ur") echo "Urdu" ;;
+    "bn") echo "Bengali" ;;
+    "ta") echo "Tamil" ;;
+    "te") echo "Telugu" ;;
+    "kn") echo "Kannada" ;;
+    "ml") echo "Malayalam" ;;
+    "mr") echo "Marathi" ;;
+    "gu") echo "Gujarati" ;;
+    "pa") echo "Punjabi" ;;
+    "ne") echo "Nepali" ;;
+    "si") echo "Sinhala" ;;
+    "my") echo "Burmese" ;;
+    "km") echo "Khmer" ;;
+    "lo") echo "Lao" ;;
+    "ka") echo "Georgian" ;;
+    "hy") echo "Armenian" ;;
+    "az") echo "Azerbaijani" ;;
+    "kk") echo "Kazakh" ;;
+    "ky") echo "Kyrgyz" ;;
+    "uz") echo "Uzbek" ;;
+    "tk") echo "Turkmen" ;;
+    "mn") echo "Mongolian" ;;
+    "bo") echo "Tibetan" ;;
+    "dz") echo "Dzongkha" ;;
+    *) echo "$1" ;;  # Return original code if not found
+  esac
+}
+
 # extract unique languages and get best audio for each (bash 3.2 compatible)
 echo "Analyzing audio streams..."
 audio_langs=""
@@ -60,7 +145,9 @@ while IFS= read -r line; do
   
   # Check if we already have this language
   if ! echo "$audio_langs" | grep -q "|$lang|"; then
-    echo "  Found new language: '$lang', audio ID: $audio_id"
+    # Get the full language name
+    lang_name=$(get_language_name "$lang")
+    echo "  Found new language: '$lang' ($lang_name), audio ID: $audio_id"
     audio_langs="$audio_langs|$lang|"
     if [ -z "$audio_ids" ]; then
       audio_ids="$audio_id"
@@ -68,11 +155,11 @@ while IFS= read -r line; do
       audio_ids="$audio_ids+$audio_id"
     fi
     
-    # Add metadata for track title (track_num starts at 1 for first audio track)
+    # Add metadata for track title using full language name
     if [ -z "$metadata_opts" ]; then
-      metadata_opts="-metadata:s:a:$((track_num-1)) title=$lang"
+      metadata_opts="-metadata:s:a:$((track_num-1)) title=\"$lang_name\""
     else
-      metadata_opts="$metadata_opts -metadata:s:a:$((track_num-1)) title=$lang"
+      metadata_opts="$metadata_opts -metadata:s:a:$((track_num-1)) title=\"$lang_name\""
     fi
     track_num=$((track_num + 1))
   fi
