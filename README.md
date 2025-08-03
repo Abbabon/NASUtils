@@ -1,28 +1,44 @@
 # NASUtils
 
-A collection of utilities for personal NAS management, including file organization, archive creation, ROM management, and YouTube video downloading.
+A collection of utilities for personal NAS management, organized into focused sub-projects for file organization, archive creation, ROM management, and YouTube video downloading.
 
-## filesOrganizer
+## Project Structure
 
-This image includes a python cron script that on activation will look for files under the volume `/input_directory` and divide them into subfolders structures `YYYY/MM` in the volume `/output_parent_directory`.
+The repository is organized into specialized sub-projects:
 
-### Dev Commands
+- **`file-organizer/`** - File organization daemon with Docker support
+- **`youtube-downloader/`** - YouTube video downloader with multi-language audio
+- **`cbz-creator/`** - Comic book archive (CBZ) creation utility
+- **`playlist-cleanup/`** - Playlist file cleanup tool
+- **`roms/`** - ROM file management suite
 
-#### Build Image
+## File Organizer (`file-organizer/`)
+
+Daemon process that continuously organizes files by date into YYYY/MM directory structure.
+
+### Docker Commands
 
 ```sh
- docker build -t file-organizer .
+# Build the image
+cd file-organizer
+docker build -t file-organizer .
+
+# Run container locally
+docker run -d --name file-organizer-container \
+  -v /path/to/input:/input_directory \
+  -v /path/to/output:/output_parent_directory \
+  file-organizer
 ```
 
-#### Start headless (locally)
+### Direct Usage
 
 ```sh
- docker run -d --name file-organizer-container -v /path/to/input:/input_directory -v /path/to/output:/output_parent_directory file-organizer
+python file-organizer/filesOrganizer.py /input_directory /output_parent_directory
 ```
 
-## yt-download.sh
+## YouTube Downloader (`youtube-downloader/`)
 
-YouTube downloader script that downloads the highest quality video with multi-language audio tracks and popular subtitles.
+Downloads highest quality video with multi-language audio tracks and popular subtitles.
 
 ### Features
 
@@ -44,18 +60,36 @@ YouTube downloader script that downloads the highest quality video with multi-la
 ### Usage
 
 ```sh
-./yt-download.sh "https://youtube.com/watch?v=VIDEO_ID" [output_directory]
+./youtube-downloader/yt-download.sh "https://youtube.com/watch?v=VIDEO_ID" [output_directory]
 ```
 
-If no output directory is specified, downloads to `downloads/` folder.
+If no output directory is specified, downloads to `youtube-downloader/downloads/` folder.
 
 ## Other Utilities
 
-- **cbzify.py** - Converts image directories into CBZ comic book archives
-- **playlist_cleanup.py** - Cleans playlist files by removing path prefixes
-- **roms/countRoms.py** - Counts ROM files by extension
-- **roms/organizeRoms.py** - Organizes ROM files into system-specific subdirectories
-- **roms/unzipRoms.py** - Recursively extracts ZIP archives
+### CBZ Creator (`cbz-creator/`)
+```sh
+python cbz-creator/cbzify.py /path/to/comic/directories
+```
+Recursively converts image directories into CBZ comic book archives.
+
+### Playlist Cleanup (`playlist-cleanup/`)
+```sh
+python playlist-cleanup/playlist_cleanup.py /playlist/directory "prefix_to_remove"
+```
+Cleans playlist files by removing path prefixes with backup creation.
+
+### ROM Management (`roms/`)
+```sh
+# Count ROM files by extension
+python roms/countRoms.py /rom/directory .nes .smc .iso
+
+# Organize ROMs by system
+python roms/organizeRoms.py /mixed/rom/directory
+
+# Extract all ZIP files recursively
+python roms/unzipRoms.py /rom/directory
+```
 
 ## TODO
 
