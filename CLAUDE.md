@@ -15,8 +15,11 @@ The project is organized into focused sub-projects, each in its own directory:
 - **Dockerfile** - Docker configuration for containerized file organization
 
 ### YouTube Downloader (`youtube-downloader/` directory)
-- **yt-download.sh** - Downloads highest quality video with multi-language audio tracks and popular subtitles
+- **Program.cs** - C# .NET 8 console application for downloading YouTube videos with multi-language audio and subtitles
+- **YoutubeDownloader.csproj** - .NET project file
+- **Dockerfile** - Docker configuration for containerized downloads
 - **downloads/** - Default output directory for downloaded videos
+- **yt-download.sh** - Legacy shell script (deprecated, use .NET version)
 - **formats.txt** - Temporary file for format analysis
 
 ### CBZ Creator (`cbz-creator/` directory)
@@ -68,8 +71,14 @@ python roms/organizeRoms.py /mixed/rom/directory
 # Extract all ZIP files recursively
 python roms/unzipRoms.py /rom/directory
 
-# Download YouTube video with best quality and multi-language audio
-./youtube-downloader/yt-download.sh "https://youtube.com/watch?v=VIDEO_ID" [output_directory]
+# Download YouTube video with best quality and multi-language audio (.NET version)
+cd youtube-downloader && dotnet run "https://youtube.com/watch?v=VIDEO_ID" [output_directory]
+
+# Or build and run as executable
+cd youtube-downloader && dotnet build && ./bin/Debug/net8.0/YoutubeDownloader "https://youtube.com/watch?v=VIDEO_ID" [output_directory]
+
+# Docker version
+cd youtube-downloader && docker build -t youtube-downloader . && docker run -v $(pwd)/downloads:/app/downloads youtube-downloader "https://youtube.com/watch?v=VIDEO_ID"
 ```
 
 ## Key Implementation Details
@@ -96,13 +105,20 @@ The `organizeRoms.py` uses a mapping of console systems to file extensions:
 - And more systems defined in `ROM_TYPES` dictionary
 
 ### Docker Integration
-Only the file organizer (`file-organizer/filesOrganizer.py`) has Docker support with:
+Both the file organizer and YouTube downloader have Docker support:
+
+**File Organizer** (`file-organizer/filesOrganizer.py`):
 - Python 3.9-slim base image
 - Volume mounts for input/output directories
 - Continuous monitoring with 60-second intervals
 
+**YouTube Downloader** (`youtube-downloader/Program.cs`):
+- .NET 8 runtime base image
+- Pre-installed yt-dlp and ffmpeg dependencies
+- Volume mounts for downloads directory
+
 ### YouTube Download Features
-The YouTube downloader (`youtube-downloader/yt-download.sh`) provides:
+The YouTube downloader (`youtube-downloader/Program.cs`) provides:
 - **Smart Quality Selection**: Downloads highest quality video format available
 - **Multi-Language Audio**: Automatically detects and downloads best audio track for each unique language with proper track titles
 - **Popular Subtitles**: Downloads subtitles for 12 popular languages (en,es,fr,de,it,pt,ru,zh,ja,ko,ar,hi) to avoid hundreds of auto-generated tracks
@@ -116,4 +132,5 @@ The YouTube downloader (`youtube-downloader/yt-download.sh`) provides:
 #### Dependencies
 - Requires `yt-dlp` to be installed and available in PATH
 - Requires `ffmpeg` to be installed and available in PATH (for video/audio processing and metadata)
-- Bash shell environment (compatible with bash 3.2+ including macOS default bash)
+- .NET 8 runtime
+- Cross-platform compatibility (Windows, macOS, Linux)
