@@ -33,6 +33,11 @@ The project is organized into focused sub-projects, each in its own directory:
 - **organizeRoms.py** - Automatically organizes ROM files into system-specific subdirectories based on file extensions
 - **unzipRoms.py** - Recursively extracts ZIP archives and removes originals with logging
 
+### Changes Detector (`changes-detector/` directory)
+- **docker-compose.yml** - Docker Compose configuration for changedetection.io service
+- Monitors websites for changes with configurable intervals and notifications
+- Web-based interface accessible via port 8300
+
 ## Development Commands
 
 ### Docker (filesOrganizer)
@@ -71,6 +76,12 @@ python roms/organizeRoms.py /mixed/rom/directory
 # Extract all ZIP files recursively
 python roms/unzipRoms.py /rom/directory
 
+# Start changes detector service
+cd changes-detector && docker compose up -d
+
+# View changes detector logs
+cd changes-detector && docker compose logs -f
+
 # Download YouTube video with best quality and multi-language audio (.NET version)
 cd youtube-downloader && dotnet run "https://youtube.com/watch?v=VIDEO_ID" [output_directory]
 
@@ -105,7 +116,7 @@ The `organizeRoms.py` uses a mapping of console systems to file extensions:
 - And more systems defined in `ROM_TYPES` dictionary
 
 ### Docker Integration
-Both the file organizer and YouTube downloader have Docker support:
+The file organizer, YouTube downloader, and changes detector have Docker support:
 
 **File Organizer** (`file-organizer/filesOrganizer.py`):
 - Python 3.9-slim base image
@@ -116,6 +127,13 @@ Both the file organizer and YouTube downloader have Docker support:
 - .NET 8 runtime base image
 - Pre-installed yt-dlp and ffmpeg dependencies
 - Volume mounts for downloads directory
+
+**Changes Detector** (`changes-detector/docker-compose.yml`):
+- Uses ghcr.io/dgtlmoon/changedetection.io image
+- Persistent data storage via named volume
+- Configurable environment variables for timezone, logging, and monitoring settings
+- Optional Chrome browser support for JavaScript-heavy websites
+- Web interface on port 8300
 
 ### YouTube Download Features
 The YouTube downloader (`youtube-downloader/Program.cs`) provides:

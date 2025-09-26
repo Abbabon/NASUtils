@@ -11,6 +11,7 @@ The repository is organized into specialized sub-projects:
 - **`cbz-creator/`** - Comic book archive (CBZ) creation utility
 - **`playlist-cleanup/`** - Playlist file cleanup tool
 - **`roms/`** - ROM file management suite
+- **`changes-detector/`** - Website change monitoring service
 
 ## File Organizer (`file-organizer/`)
 
@@ -91,6 +92,24 @@ python roms/organizeRoms.py /mixed/rom/directory
 python roms/unzipRoms.py /rom/directory
 ```
 
-## TODO
+- **`changes-detector/`** - Website change monitoring service
 
-* [ ] filesOrganizer - Add progress logs of some kind (every 10 files?)
+## Changes Detector (`changes-detector/`)
+
+Website change monitoring service using changedetection.io with Docker support.
+
+### Docker Commands
+
+```sh
+# Start the service
+cd changes-detector
+docker compose up -d
+
+# View logs
+docker compose logs -f
+
+# Stop the service
+docker compose down
+```
+
+Access the web interface at `http://192.168.1.209:8300` (or your NAS IP with port 8300).
