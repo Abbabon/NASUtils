@@ -1,0 +1,7 @@
+bin/
+obj/
+downloads/
+formats.txt
+yt-download.sh
+.git
+README.md
