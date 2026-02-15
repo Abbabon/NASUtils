@@ -1,0 +1,16 @@
+services:
+  file-organizer:
+    build: .
+    image: file-organizer:latest
+    container_name: file-organizer
+    restart: unless-stopped
+    volumes:
+      - ${INPUT_DIRECTORY:-/volume1/Assets/Photos/Photosync}:/input_directory
+      - ${OUTPUT_DIRECTORY:-/volume1/Assets/Photos/Archive}:/output_parent_directory
+    environment:
+      - TZ=Asia/Jerusalem
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

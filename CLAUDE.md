@@ -135,6 +135,115 @@ The file organizer, YouTube downloader, and changes detector have Docker support
 - Optional Chrome browser support for JavaScript-heavy websites
 - Web interface on port 8300
 
+## NAS Deployment
+
+### Target Environment
+- **Hardware**: Synology DS423 (AMD Ryzen R1600)
+- **OS**: DSM 7.x
+- **Container runtime**: Container Manager (Synology's Docker package)
+- **Local IP**: `192.168.1.209`
+- **Timezone**: `Asia/Jerusalem`
+
+### Synology Path Conventions
+- All shared folders live under `/volume1/` (primary storage volume)
+- Docker project files: `/volume1/docker/<project-name>/`
+- Common shared folders: `/volume1/Assets/`, `/volume1/homes/`, `/volume1/docker/`
+- USB drives mount at `/volumeUSB1/`, `/volumeUSB2/`
+
+### Deploying Services via SSH + CLI
+
+Containers are managed via SSH and `docker compose` CLI. The Container Manager GUI (DSM web UI) can be used to monitor containers (start/stop/logs) but **do not mix CLI and GUI management** on the same container — it can cause config mismatches.
+
+```sh
+# SSH into NAS (key auth configured for user amit)
+ssh amit@192.168.1.209
+
+# Docker binary location (not in default PATH)
+/usr/local/bin/docker compose up -d
+/usr/local/bin/docker compose logs -f
+/usr/local/bin/docker ps
+```
+
+**Deploying from local machine:**
+```sh
+# Copy project files to NAS
+scp -O <local-files> amit@192.168.1.209:/volume1/docker/<project-name>/
+
+# SSH in and start
+ssh amit@192.168.1.209
+cd /volume1/docker/<project-name>
+/usr/local/bin/docker compose up -d --build
+```
+
+**Note:** `docker` is at `/usr/local/bin/docker` on the NAS — it's not in the default PATH for non-root users. Use the full path or add it to your shell profile.
+
+### File-Organizer Deployment
+The file-organizer has a `docker-compose.yml` with env var defaults:
+- **Input**: `/volume1/Assets/Photos/Photosync` (recursive scan of subfolders)
+- **Output**: `/volume1/Assets/Photos/Archive` (organized into `YYYY/MM` structure)
+
+```sh
+# Deploy on NAS
+cd /volume1/docker/file-organizer
+# Optionally create .env from .env.example to override paths
+docker compose up -d
+
+# Check logs
+docker logs file-organizer
+```
+
+### Secure Remote Access (Tailscale)
+
+Tailscale is recommended for secure remote access — zero port forwarding, works behind CGNAT, free for personal use.
+
+**Setup:**
+1. Install Tailscale from Synology Package Center (DSM 7.x native package)
+2. Authenticate: `sudo tailscale up`
+3. Optional subnet routing: `sudo tailscale up --advertise-routes=192.168.1.0/24`
+4. Access from anywhere: `ssh amit@<tailscale-ip>` or `ssh amit@ds423` (MagicDNS)
+
+**Alternatives** (if Tailscale doesn't fit):
+- **Synology VPN Server** (OpenVPN/L2TP) — requires port forwarding
+- **Cloudflare Tunnel** — zero open ports, runs as a container, good for web services
+- **Synology QuickConnect** — DSM web UI only, no SSH/CLI access
+- **DDNS + HTTPS** — Let's Encrypt via DSM, requires port forwarding
+
+### NAS Best Practices
+
+**Container management:**
+- Always use `docker compose` (not bare `docker run`) for reproducibility
+- Pin image versions in production (e.g., `python:3.9-slim`), use `:latest` only for testing
+- Set `restart: unless-stopped` on all services
+- Configure log rotation on every service to prevent filling the volume:
+  ```yaml
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "3"
+  ```
+- Use `.env` files for paths and secrets, never hard-code Synology paths in compose files
+- Use `TZ` environment variable consistently across all services (`Asia/Jerusalem`)
+- Run containers as non-root when possible (`user: "1026:100"` for Synology default user UID:GID)
+
+**Testing and deployment:**
+- Test containers locally before deploying to NAS
+- Keep compose files in this repo, deploy by copying to `/volume1/docker/<project>/`
+- Monitor container health via Container Manager UI or `docker ps` / `docker logs`
+
+**Security:**
+- SSH hardening: change default port (e.g., 2222), use key-only auth, disable password login
+- Enable 2FA in DSM: Control Panel → User & Group → Advanced → 2-Factor Authentication
+- Enable auto-block for failed logins: Control Panel → Security → Account
+- Configure DSM firewall: Control Panel → Security → Firewall (deny all, allow specific ports)
+- Keep DSM and all packages updated
+- Never expose SSH or DSM directly to the internet — use Tailscale or VPN
+
+**Backups:**
+- Back up `/volume1/docker/` regularly using Hyper Backup
+- Include compose files, `.env` files, and persistent data volumes
+- Test restores periodically
+
 ### YouTube Download Features
 The YouTube downloader (`youtube-downloader/Program.cs`) provides:
 - **Smart Quality Selection**: Downloads highest quality video format available
