@@ -113,3 +113,56 @@ docker compose down
 ```
 
 Access the web interface at `http://192.168.1.209:8300` (or your NAS IP with port 8300).
+
+## NAS Deployment
+
+Services are deployed to a **Synology DS423** running DSM 7.x via **SSH + CLI** (`docker compose`). The Container Manager GUI can monitor containers but should not be used to edit CLI-deployed services.
+
+### Deploying file-organizer
+
+The file-organizer monitors `/volume1/Assets/Photos/Photosync` (including subfolders) and organizes files by date into `/volume1/Assets/Photos/Archive/YYYY/MM/`.
+
+```sh
+# Copy project files to NAS (use -O flag for Synology SCP compatibility)
+scp -O file-organizer/docker-compose.yml file-organizer/.env.example \
+  file-organizer/Dockerfile file-organizer/filesOrganizer.py \
+  amit@192.168.1.209:/volume1/docker/file-organizer/
+
+# SSH into NAS and deploy
+ssh amit@192.168.1.209
+cd /volume1/docker/file-organizer
+
+# Optionally create .env from .env.example to override default paths
+cp .env.example .env
+
+/usr/local/bin/docker compose up -d --build
+/usr/local/bin/docker logs file-organizer
+```
+
+Other services (changes-detector, immich) follow the same pattern — each has its own `docker-compose.yml`.
+
+> **Note:** `docker` is at `/usr/local/bin/docker` on the NAS and is not in the default PATH for non-root users.
+
+### Secure Remote Access
+
+**Tailscale** (recommended) provides zero-config VPN access with no port forwarding:
+
+1. Install Tailscale from Synology Package Center
+2. Authenticate: `sudo tailscale up`
+3. Optional subnet routing: `sudo tailscale up --advertise-routes=192.168.1.0/24`
+4. Connect from anywhere: `ssh amit@<tailscale-ip>` or use MagicDNS (`ssh amit@ds423`)
+
+Alternatives: Synology VPN Server (OpenVPN), Cloudflare Tunnel, DDNS + HTTPS.
+
+### Best Practices
+
+- Use `docker compose` for all deployments — never bare `docker run`
+- Configure **log rotation** on every service (`max-size: 10m`, `max-file: 3`) to prevent filling the volume
+- Use `.env` files for paths and secrets, keep `.env.example` in the repo
+- Set `restart: unless-stopped` and `TZ=Asia/Jerusalem` on all services
+- Pin image versions in production, use `:latest` only for testing
+- **SSH hardening**: custom port, key-only auth, disable password login
+- **Enable 2FA** and auto-block for failed logins in DSM Control Panel
+- **Never expose SSH/DSM directly** to the internet — use Tailscale or VPN
+- **Back up** `/volume1/docker/` regularly with Hyper Backup
+- Test containers locally before deploying to NAS
