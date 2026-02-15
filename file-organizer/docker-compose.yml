@@ -8,7 +8,7 @@ services:
       - ${INPUT_DIRECTORY:-/volume1/Assets/Photos/Photosync}:/input_directory
       - ${OUTPUT_DIRECTORY:-/volume1/Assets/Photos/Archive}:/output_parent_directory
     environment:
-      - TZ=Asia/Jerusalem
+      - TZ=${TZ}
     logging:
       driver: "json-file"
       options:

@@ -141,8 +141,8 @@ The file organizer, YouTube downloader, and changes detector have Docker support
 - **Hardware**: Synology DS423 (AMD Ryzen R1600)
 - **OS**: DSM 7.x
 - **Container runtime**: Container Manager (Synology's Docker package)
-- **Local IP**: `192.168.1.209`
-- **Timezone**: `Asia/Jerusalem`
+- **Local IP**: see `NAS_IP` in root `.env` (copy from `.env.example`)
+- **Timezone**: see `TZ` in `.env` files (IANA format)
 
 ### Synology Path Conventions
 - All shared folders live under `/volume1/` (primary storage volume)
@@ -155,8 +155,8 @@ The file organizer, YouTube downloader, and changes detector have Docker support
 Containers are managed via SSH and `docker compose` CLI. The Container Manager GUI (DSM web UI) can be used to monitor containers (start/stop/logs) but **do not mix CLI and GUI management** on the same container — it can cause config mismatches.
 
 ```sh
-# SSH into NAS (key auth configured for user amit)
-ssh amit@192.168.1.209
+# SSH into NAS (key auth configured — see NAS_USER and NAS_IP in .env.example)
+ssh $NAS_USER@$NAS_IP
 
 # Docker binary location (not in default PATH)
 /usr/local/bin/docker compose up -d
@@ -167,10 +167,10 @@ ssh amit@192.168.1.209
 **Deploying from local machine:**
 ```sh
 # Copy project files to NAS
-scp -O <local-files> amit@192.168.1.209:/volume1/docker/<project-name>/
+scp -O <local-files> $NAS_USER@$NAS_IP:/volume1/docker/<project-name>/
 
 # SSH in and start
-ssh amit@192.168.1.209
+ssh $NAS_USER@$NAS_IP
 cd /volume1/docker/<project-name>
 /usr/local/bin/docker compose up -d --build
 ```
@@ -199,8 +199,8 @@ Tailscale is recommended for secure remote access — zero port forwarding, work
 **Setup:**
 1. Install Tailscale from Synology Package Center (DSM 7.x native package)
 2. Authenticate: `sudo tailscale up`
-3. Optional subnet routing: `sudo tailscale up --advertise-routes=192.168.1.0/24`
-4. Access from anywhere: `ssh amit@<tailscale-ip>` or `ssh amit@ds423` (MagicDNS)
+3. Optional subnet routing: `sudo tailscale up --advertise-routes=$NAS_SUBNET`
+4. Access from anywhere: `ssh $NAS_USER@<tailscale-ip>` or `ssh $NAS_USER@<nas-hostname>` (MagicDNS)
 
 **Alternatives** (if Tailscale doesn't fit):
 - **Synology VPN Server** (OpenVPN/L2TP) — requires port forwarding
@@ -223,7 +223,7 @@ Tailscale is recommended for secure remote access — zero port forwarding, work
       max-file: "3"
   ```
 - Use `.env` files for paths and secrets, never hard-code Synology paths in compose files
-- Use `TZ` environment variable consistently across all services (`Asia/Jerusalem`)
+- Use `TZ` environment variable consistently across all services (set in each project's `.env`)
 - Run containers as non-root when possible (`user: "1026:100"` for Synology default user UID:GID)
 
 **Testing and deployment:**
