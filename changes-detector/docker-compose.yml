@@ -14,9 +14,9 @@ services:
       # Log level (DEBUG is default, options: TRACE, DEBUG, INFO, SUCCESS, WARNING, ERROR, CRITICAL)
       - LOGGER_LEVEL=INFO
       # Timezone for scheduling (adjust to your location)
-      - TZ=Asia/Jerusalem
-      # Base URL for notifications (replace with your NAS IP/domain)
-      - BASE_URL=http://192.168.1.209:8300
+      - TZ=${TZ}
+      # Base URL for notifications (set NAS_IP in .env or root .env.example)
+      - BASE_URL=http://${NAS_IP}:8300
       # Default number of parallel fetchers
       - FETCH_WORKERS=10
       # Minimum recheck time in seconds

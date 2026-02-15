@@ -112,11 +112,13 @@ docker compose logs -f
 docker compose down
 ```
 
-Access the web interface at `http://192.168.1.209:8300` (or your NAS IP with port 8300).
+Access the web interface at `http://<NAS_IP>:8300` (set `NAS_IP` in `changes-detector/.env`).
 
 ## NAS Deployment
 
 Services are deployed to a **Synology DS423** running DSM 7.x via **SSH + CLI** (`docker compose`). The Container Manager GUI can monitor containers but should not be used to edit CLI-deployed services.
+
+> **Setup:** Copy `.env.example` to `.env` at the repo root and fill in `NAS_IP`, `NAS_USER`, and `NAS_SUBNET`. Commands below reference these variables.
 
 ### Deploying file-organizer
 
@@ -126,10 +128,10 @@ The file-organizer monitors `/volume1/Assets/Photos/Photosync` (including subfol
 # Copy project files to NAS (use -O flag for Synology SCP compatibility)
 scp -O file-organizer/docker-compose.yml file-organizer/.env.example \
   file-organizer/Dockerfile file-organizer/filesOrganizer.py \
-  amit@192.168.1.209:/volume1/docker/file-organizer/
+  $NAS_USER@$NAS_IP:/volume1/docker/file-organizer/
 
 # SSH into NAS and deploy
-ssh amit@192.168.1.209
+ssh $NAS_USER@$NAS_IP
 cd /volume1/docker/file-organizer
 
 # Optionally create .env from .env.example to override default paths
@@ -149,8 +151,8 @@ Other services (changes-detector, immich) follow the same pattern — each has i
 
 1. Install Tailscale from Synology Package Center
 2. Authenticate: `sudo tailscale up`
-3. Optional subnet routing: `sudo tailscale up --advertise-routes=192.168.1.0/24`
-4. Connect from anywhere: `ssh amit@<tailscale-ip>` or use MagicDNS (`ssh amit@ds423`)
+3. Optional subnet routing: `sudo tailscale up --advertise-routes=$NAS_SUBNET`
+4. Connect from anywhere: `ssh $NAS_USER@<tailscale-ip>` or use MagicDNS (`ssh $NAS_USER@<nas-hostname>`)
 
 Alternatives: Synology VPN Server (OpenVPN), Cloudflare Tunnel, DDNS + HTTPS.
 
@@ -159,7 +161,7 @@ Alternatives: Synology VPN Server (OpenVPN), Cloudflare Tunnel, DDNS + HTTPS.
 - Use `docker compose` for all deployments — never bare `docker run`
 - Configure **log rotation** on every service (`max-size: 10m`, `max-file: 3`) to prevent filling the volume
 - Use `.env` files for paths and secrets, keep `.env.example` in the repo
-- Set `restart: unless-stopped` and `TZ=Asia/Jerusalem` on all services
+- Set `restart: unless-stopped` and `TZ` (from `.env`) on all services
 - Pin image versions in production, use `:latest` only for testing
 - **SSH hardening**: custom port, key-only auth, disable password login
 - **Enable 2FA** and auto-block for failed logins in DSM Control Panel
