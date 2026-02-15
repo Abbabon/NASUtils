@@ -9,5 +9,8 @@
 downloads/
 formats.txt
 
+# Environment files
+.env
+
 # OS
 .DS_Store
