@@ -269,6 +269,7 @@ The YouTube downloader (`youtube-downloader/Program.cs`) provides:
 
 #### Dependencies
 - Requires `yt-dlp` to be installed and available in PATH
+- Requires `deno` JavaScript runtime (used by yt-dlp for YouTube extraction)
 - Requires `ffmpeg` to be installed and available in PATH (for video/audio processing and metadata)
 - .NET 8 runtime
 - Cross-platform compatibility (Windows, macOS, Linux)
