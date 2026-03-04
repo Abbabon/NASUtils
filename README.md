@@ -39,16 +39,18 @@ python file-organizer/filesOrganizer.py /input_directory /output_parent_director
 
 ## YouTube Downloader (`youtube-downloader/`)
 
-Downloads highest quality video with multi-language audio tracks and popular subtitles.
+C# .NET 8 console application that downloads highest quality video with multi-language audio tracks and popular subtitles.
 
 ### Features
 
+- **Playlist Support**: Automatically detects playlist URLs and downloads all videos with numbered filenames and progress tracking
+- **Item Selection**: Download specific playlist items by index, range, or combination (e.g. `--items 1,3-5,8`)
 - **Smart Quality Selection**: Downloads highest quality video format available
 - **Multi-Language Audio**: Automatically detects and downloads best audio track for each unique language with proper track titles
 - **Popular Subtitles**: Downloads subtitles for 12 popular languages to avoid hundreds of auto-generated tracks
-- **Rate Limiting**: Built-in delays and retry logic to handle YouTube's rate limiting
+- **Rate Limiting**: Built-in delays and retry logic to handle YouTube's rate limiting (auto-retries without subtitles on 429 errors)
 - **Duplicate Prevention**: Skips downloads if video already exists
-- **Organized Output**: Creates unique folders per video using video ID
+- **Organized Output**: Creates unique folders per video using video ID; playlists grouped into a folder by playlist ID with numbered files
 - **MKV Container**: Merges all tracks into single file with embedded subtitles and metadata
 - **Clean Output**: Automatically removes temporary files and standalone subtitle files after embedding
 
@@ -56,12 +58,22 @@ Downloads highest quality video with multi-language audio tracks and popular sub
 
 - `yt-dlp` installed and available in PATH
 - `ffmpeg` installed and available in PATH (for video/audio processing and metadata)
-- Bash shell environment (works with bash 3.2+ including macOS default)
+- .NET 8 runtime
 
 ### Usage
 
 ```sh
-./youtube-downloader/yt-download.sh "https://youtube.com/watch?v=VIDEO_ID" [output_directory]
+# Download a single video
+cd youtube-downloader && dotnet run "https://youtube.com/watch?v=VIDEO_ID" [output_directory]
+
+# Download all videos from a playlist
+cd youtube-downloader && dotnet run "https://youtube.com/playlist?list=PLAYLIST_ID" [output_directory]
+
+# Download specific playlist items
+cd youtube-downloader && dotnet run "https://youtube.com/playlist?list=PLAYLIST_ID" --items 3        # single
+cd youtube-downloader && dotnet run "https://youtube.com/playlist?list=PLAYLIST_ID" --items 1,3,5    # multiple
+cd youtube-downloader && dotnet run "https://youtube.com/playlist?list=PLAYLIST_ID" --items 2-7      # range
+cd youtube-downloader && dotnet run "https://youtube.com/playlist?list=PLAYLIST_ID" --items 1,3-5,8  # combined
 ```
 
 If no output directory is specified, downloads to `youtube-downloader/downloads/` folder.
