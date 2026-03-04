@@ -276,7 +276,7 @@ class Program
 
             int succeeded = 0;
             int skipped = 0;
-            var failed = new List<(string Title, string Error)>();
+            var failed = new List<(int Index, string Title, string Error)>();
             int padWidth = entries.Count.ToString().Length;
             bool isFirst = true;
 
@@ -343,7 +343,7 @@ class Program
                 catch (Exception ex)
                 {
                     Console.WriteLine($"  Failed: {ex.Message}");
-                    failed.Add((entry.Title, ex.Message));
+                    failed.Add((itemNumber, entry.Title, ex.Message));
                     // Clean up partial videoId subfolder on failure
                     string videoSubDir = Path.Combine(playlistDir, entry.VideoId);
                     if (Directory.Exists(videoSubDir))
@@ -363,10 +363,12 @@ class Program
             {
                 Console.WriteLine();
                 Console.WriteLine("Failed videos:");
-                foreach (var (title, error) in failed)
+                foreach (var (index, title, error) in failed)
                 {
-                    Console.WriteLine($"  - {title}: {error}");
+                    Console.WriteLine($"  - [{index}] {title}: {error}");
                 }
+                Console.WriteLine();
+                Console.WriteLine($"Retry with: --items {string.Join(",", failed.Select(f => f.Index))}");
             }
         }
 
