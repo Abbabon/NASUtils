@@ -85,6 +85,15 @@ cd changes-detector && docker compose logs -f
 # Download YouTube video with best quality and multi-language audio (.NET version)
 cd youtube-downloader && dotnet run "https://youtube.com/watch?v=VIDEO_ID" [output_directory]
 
+# Download all videos from a YouTube playlist
+cd youtube-downloader && dotnet run "https://youtube.com/playlist?list=PLAYLIST_ID" [output_directory]
+
+# Download specific playlist items (single, multiple, range, or combined)
+cd youtube-downloader && dotnet run "https://youtube.com/playlist?list=PLAYLIST_ID" --items 3
+cd youtube-downloader && dotnet run "https://youtube.com/playlist?list=PLAYLIST_ID" --items 1,3,5
+cd youtube-downloader && dotnet run "https://youtube.com/playlist?list=PLAYLIST_ID" --items 2-7
+cd youtube-downloader && dotnet run "https://youtube.com/playlist?list=PLAYLIST_ID" --items 1,3-5,8
+
 # Or build and run as executable
 cd youtube-downloader && dotnet build && ./bin/Debug/net8.0/YoutubeDownloader "https://youtube.com/watch?v=VIDEO_ID" [output_directory]
 
@@ -246,6 +255,8 @@ Tailscale is recommended for secure remote access — zero port forwarding, work
 
 ### YouTube Download Features
 The YouTube downloader (`youtube-downloader/Program.cs`) provides:
+- **Playlist Support**: Automatically detects playlist URLs and downloads all videos sequentially with progress tracking and summary report
+- **Item Selection**: Download specific playlist items by index (`--items 3`), multiple (`--items 1,3,5`), range (`--items 2-7`), or combined (`--items 1,3-5,8`)
 - **Smart Quality Selection**: Downloads highest quality video format available
 - **Multi-Language Audio**: Automatically detects and downloads best audio track for each unique language with proper track titles
 - **Popular Subtitles**: Downloads subtitles for 12 popular languages (en,es,fr,de,it,pt,ru,zh,ja,ko,ar,hi) to avoid hundreds of auto-generated tracks
