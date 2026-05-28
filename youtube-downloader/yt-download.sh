@@ -9,6 +9,13 @@ if [ -z "$URL" ]; then
   exit 1
 fi
 
+# Keep yt-dlp current — YouTube frequently breaks older versions via
+# signature / SABR changes, which manifests as "no formats detected".
+echo "Ensuring yt-dlp is up to date..."
+if ! yt-dlp -U --quiet 2>/dev/null; then
+  pip3 install -U yt-dlp --quiet 2>/dev/null || true
+fi
+
 # Extract video ID from URL for unique folder naming (BSD grep compatible)
 VIDEO_ID=$(echo "$URL" | sed -n 's/.*[?&]v=\([^&]*\).*/\1/p')
 if [ -z "$VIDEO_ID" ]; then
@@ -27,21 +34,22 @@ mkdir -p "$TEMP_DIR"
 echo "Downloading to: $VIDEO_DIR"
 
 # Check if already downloaded
-if [ -f "$VIDEO_DIR"/*.mkv ]; then
+if ls "$VIDEO_DIR"/*.mkv >/dev/null 2>&1; then
   echo "Video already downloaded in $VIDEO_DIR"
   echo "Skipping download. Delete the folder to re-download."
   exit 0
 fi
 
-# fetch formats
+# fetch formats (store inside the per-video dir to avoid concurrent-run collisions)
+FORMATS_FILE="$VIDEO_DIR/formats.txt"
 echo "Fetching formats..."
-yt-dlp -F "$URL" > formats.txt
+yt-dlp -F "$URL" > "$FORMATS_FILE"
 
 echo "Available audio streams:"
-grep 'audio only' formats.txt
+grep 'audio only' "$FORMATS_FILE"
 
 # extract best quality video format
-v_id=$(grep 'video only' formats.txt | tail -n1 | awk '{print $1}')
+v_id=$(grep 'video only' "$FORMATS_FILE" | tail -n1 | awk '{print $1}')
 
 # Language code to full name mapping
 get_language_name() {
@@ -163,12 +171,15 @@ while IFS= read -r line; do
     fi
     track_num=$((track_num + 1))
   fi
-done < <(grep 'audio only' formats.txt)
+done < <(grep 'audio only' "$FORMATS_FILE")
 
 echo "Language detection complete. Found languages: $(echo "$audio_langs" | tr '|' ' ')"
 
 if [ -z "$v_id" ] || [ -z "$audio_ids" ]; then
-  echo "Could not detect video or audio formats"
+  echo "Could not detect video or audio formats."
+  echo "This usually means yt-dlp is outdated or YouTube changed its signature/SABR scheme."
+  echo "Try updating: pip3 install -U yt-dlp"
+  echo "Format dump for inspection: $FORMATS_FILE"
   exit 1
 fi
 
@@ -215,9 +226,9 @@ echo "Final files in output directory:"
 cd ".."
 ls -la *.mkv 2>/dev/null || echo "No video files found"
 
-# Clean up temp directory and any remaining subtitle files
+# Clean up temp directory, formats dump, and any remaining subtitle files
 rm -rf temp/
-rm -f *.vtt *.srt 2>/dev/null
+rm -f formats.txt *.vtt *.srt 2>/dev/null
 
 echo "Cleanup completed. Final contents:"
 ls -la
