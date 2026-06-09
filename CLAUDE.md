@@ -38,6 +38,11 @@ The project is organized into focused sub-projects, each in its own directory:
 - Monitors websites for changes with configurable intervals and notifications
 - Web-based interface accessible via port 8300
 
+### Jellyfin (`jellyfin/` directory)
+- **docker-compose.yml** - Managed Jellyfin media server (host networking, memory limit, auto-restart)
+- **.env.example** - Paths, timezone, and memory ceiling
+- **README.md** - Setup plus a 2026-06-07 crash post-mortem (OOM kill during library scan)
+
 ## Development Commands
 
 ### Docker (filesOrganizer)

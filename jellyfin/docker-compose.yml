@@ -1,0 +1,36 @@
+services:
+  jellyfin:
+    # Reuses the existing local image so runtime behaviour is unchanged.
+    # Switch to the official image (jellyfin/jellyfin:10.10.7) if you'd rather
+    # drop the custom build — your /config and /cache are compatible either way.
+    image: ${JELLYFIN_IMAGE:-jellyfin-jellyfin-1-1-1:20260220}
+    container_name: jellyfin
+    network_mode: host
+
+    # --- Crash fix #1: auto-recover instead of staying dead after a kill ---
+    restart: unless-stopped
+
+    # --- Crash fix #2: cap memory so a heavy library scan can't OOM the NAS ---
+    # The DS423 has 2 GB RAM. With no limit, parallel ffprobe runs
+    # (-probesize 1G each) exhausted RAM and the kernel SIGKILL'd Jellyfin.
+    # With a ceiling, ffmpeg/ffprobe fail gracefully inside the container
+    # instead of taking the whole NAS down. Tune via .env if too tight/loose.
+    mem_limit: ${JELLYFIN_MEM_LIMIT:-1536m}
+
+    environment:
+      # Returns freed heap to the OS sooner (was already set on the image).
+      - MALLOC_TRIM_THRESHOLD_=131072
+      - TZ=${TZ:-UTC}
+
+    volumes:
+      - ${JELLYFIN_CONFIG:-/volume2/docker/jellyfin/config}:/config
+      - ${JELLYFIN_CACHE:-/volume2/docker/jellyfin/cache}:/cache
+      - ${MEDIA_STREAM:-/volume1/Stream}:/Stream
+      - ${MEDIA_FLAC:-/volume1/FLAC}:/FLAC
+
+    # Prevent logs from filling the volume over time.
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
