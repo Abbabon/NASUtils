@@ -28,6 +28,11 @@ The project is organized into focused sub-projects, each in its own directory:
 ### Playlist Cleanup (`playlist-cleanup/` directory)
 - **playlist_cleanup.py** - Cleans playlist files by removing path prefixes with backup creation
 
+### Sync Conflict Resolver (`sync-conflict-resolver/` directory)
+- **sync_conflict_resolver.py** - Interactively resolves Syncthing `*.sync-conflict-*` files: recursively scans a path, shows a colored diff (small text files) or metadata comparison (binary/large), and prompts per conflict to keep original/conflict, skip, open in editor, or quit. Stdlib only.
+- **favorites.example.json** - Sample favorites config (saved scan paths)
+- **README.md** - Usage, key bindings, favorites format, and the one-device-at-a-time caveat
+
 ### ROM Management Suite (`roms/` directory)
 - **countRoms.py** - Counts ROM files by extension across directories
 - **organizeRoms.py** - Automatically organizes ROM files into system-specific subdirectories based on file extensions
@@ -71,6 +76,14 @@ python cbz-creator/cbzify.py /path/to/comic/directories
 
 # Clean playlists with custom prefix
 python playlist-cleanup/playlist_cleanup.py /playlist/directory "C:\Music"
+
+# Interactively resolve Syncthing conflict files (decide per conflict)
+python sync-conflict-resolver/sync_conflict_resolver.py /path/to/folder
+
+# Preview only / pick from saved favorites / bulk "original always wins"
+python sync-conflict-resolver/sync_conflict_resolver.py /path/to/folder --dry-run
+python sync-conflict-resolver/sync_conflict_resolver.py            # favorites menu
+python sync-conflict-resolver/sync_conflict_resolver.py /path/to/folder --auto original
 
 # Count ROM files by extension
 python roms/countRoms.py /rom/directory .nes .smc .iso
