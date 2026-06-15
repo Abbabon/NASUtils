@@ -12,5 +12,8 @@ formats.txt
 # Environment files
 .env
 
+# Sync conflict resolver — real favorites (the .example stays committed)
+sync-conflict-resolver/favorites.json
+
 # OS
 .DS_Store
