@@ -8,6 +8,8 @@ The repository is organized into specialized sub-projects:
 
 - **`file-organizer/`** - File organization daemon with Docker support
 - **`youtube-downloader/`** - YouTube video downloader with multi-language audio
+- **`video-converter/`** - Video format and codec conversion tools
+- **`video-editor/`** - Video editing utilities (speed, etc.)
 - **`cbz-creator/`** - Comic book archive (CBZ) creation utility
 - **`playlist-cleanup/`** - Playlist file cleanup tool
 - **`roms/`** - ROM file management suite
@@ -77,6 +79,40 @@ cd youtube-downloader && dotnet run "https://youtube.com/playlist?list=PLAYLIST_
 ```
 
 If no output directory is specified, downloads to `youtube-downloader/downloads/` folder.
+
+## Video Converter (`video-converter/`)
+
+Converts videos to QuickTime-friendly formats, smart about existing codecs.
+
+### Usage
+
+```sh
+# Convert to .mov (probes source, re-encodes if needed, preserves if H.264)
+video-converter/to-mov.sh input.mkv
+video-converter/to-mov.sh input.mkv output.mov
+video-converter/to-mov.sh input.mkv --crf 16      # higher quality
+video-converter/to-mov.sh /path/to/folder         # batch-convert directory
+```
+
+Useful for YouTube downloads (often AV1 in `.mkv`) that won't open in QuickTime.
+
+## Video Editor (`video-editor/`)
+
+Tools for editing video properties. Currently includes speed adjustment.
+
+### Speed Change
+
+Re-time a video by a speed factor (2 = twice as fast, 0.5 = half speed). Pitch is preserved via audio tempo adjustment.
+
+```sh
+# Make a video faster or slower
+video-editor/speed.sh clip.mp4 2                 # 2x speed -> clip_2x.mp4
+video-editor/speed.sh clip.mp4 0.5               # half speed
+video-editor/speed.sh clip.mp4 8 --mute          # 8x timelapse, no audio
+video-editor/speed.sh /path/to/folder 2          # batch-retime directory
+```
+
+Options: `--mute` (drop audio), `--crf N` (quality, default 18), `--preset NAME` (encode speed).
 
 ## Other Utilities
 

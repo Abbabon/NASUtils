@@ -22,6 +22,14 @@ The project is organized into focused sub-projects, each in its own directory:
 - **yt-download.sh** - Legacy shell script (deprecated, use .NET version)
 - **formats.txt** - Temporary file for format analysis
 
+### Video Converter (`video-converter/` directory)
+- **to-mov.sh** - Converts videos to a QuickTime-editable `.mov`. Probes the source codec: re-encodes AV1/VP9/other to H.264, or just remuxes if already H.264. Copies AAC audio (re-encodes otherwise) and sets `+faststart`. Useful for YouTube downloads, which are often AV1 in an `.mkv` that QuickTime can't open or trim. Supports `--crf`, `--preset`, and directory batch mode.
+- **README.md** - Why AV1 won't open in QuickTime, usage, options, and behaviour
+
+### Video Editor (`video-editor/` directory)
+- **speed.sh** - Speeds up or slows down a video by a factor (e.g. `2`, `0.5x`). Rescales video timestamps with `setpts` and retimes audio with pitch preserved via chained `atempo` filters, so any factor works (8x timelapse, 0.25x slow-mo). Re-encodes to H.264/AAC, drops subtitle streams, supports `--mute`, `--crf`, `--preset`, and directory batch mode. A `video-speed` project skill (`.claude/skills/video-speed/`) wraps it.
+- **README.md** - Usage, options, and behaviour notes
+
 ### CBZ Creator (`cbz-creator/` directory)
 - **cbzify.py** - Recursively converts image directories into CBZ comic book archives
 
@@ -84,6 +92,17 @@ python sync-conflict-resolver/sync_conflict_resolver.py /path/to/folder
 python sync-conflict-resolver/sync_conflict_resolver.py /path/to/folder --dry-run
 python sync-conflict-resolver/sync_conflict_resolver.py            # favorites menu
 python sync-conflict-resolver/sync_conflict_resolver.py /path/to/folder --auto original
+
+# Speed up or slow down a video (pitch-preserved audio)
+video-editor/speed.sh clip.mp4 2               # 2x faster  -> clip_2x.mp4
+video-editor/speed.sh clip.mp4 0.5x            # half speed -> clip_0.5x.mp4
+video-editor/speed.sh clip.mp4 8 --mute        # 8x timelapse, no audio
+video-editor/speed.sh /path/to/folder 2        # batch-retime a directory
+
+# Convert a video (e.g. an AV1 .mkv from the YouTube downloader) to a QuickTime-editable .mov
+video-converter/to-mov.sh "youtube-downloader/downloads/VIDEO_ID/video.mkv"
+video-converter/to-mov.sh "video.mkv" --crf 16        # higher quality re-encode
+video-converter/to-mov.sh /path/to/folder             # batch-convert a directory
 
 # Count ROM files by extension
 python roms/countRoms.py /rom/directory .nes .smc .iso
