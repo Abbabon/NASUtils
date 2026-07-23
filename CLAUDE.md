@@ -30,6 +30,15 @@ The project is organized into focused sub-projects, each in its own directory:
 - **speed.sh** - Speeds up or slows down a video by a factor (e.g. `2`, `0.5x`). Rescales video timestamps with `setpts` and retimes audio with pitch preserved via chained `atempo` filters, so any factor works (8x timelapse, 0.25x slow-mo). Re-encodes to H.264/AAC, drops subtitle streams, supports `--mute`, `--crf`, `--preset`, and directory batch mode. A `video-speed` project skill (`.claude/skills/video-speed/`) wraps it.
 - **README.md** - Usage, options, and behaviour notes
 
+### Atlas Localizer (`atlas-localizer/` directory)
+- **tpsheet.py** - Parse/write TexturePacker Unity `.tpsheet` files (stdlib; `roundtrip` self-test CLI)
+- **slice_atlas.py** - Crops each atlas sprite to a PNG + manifest.json (y-origin defaults to `bottom`, the TexturePacker convention)
+- **generate.sh** - One image via gpt-image-2 through the Codex CLI (ChatGPT subscription, no API key)
+- **postprocess.py** - Edge flood-fill chroma key (#eeeeee) with enclosed-pocket clearing + fit to sprite rect; optional rembg escape hatch
+- **compose_atlas.py** - Shelf-packs translated sprites (sizes preserved) into the smallest power-of-two canvas, writes `<Atlas>_<locale>.png` + `.tpsheet` with rewritten coordinates
+- **work/** - Gitignored staging (slices, generated images, per-locale outputs)
+- Orchestrated by the `localize-atlas` project skill (`.claude/skills/localize-atlas/`): detects baked-in-text sprites with Claude vision, translates (solaria catalogs first), regenerates per locale, QCs text character-for-character, composes per-locale atlases
+
 ### CBZ Creator (`cbz-creator/` directory)
 - **cbzify.py** - Recursively converts image directories into CBZ comic book archives
 

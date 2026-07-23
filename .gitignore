@@ -15,5 +15,11 @@ formats.txt
 # Sync conflict resolver — real favorites (the .example stays committed)
 sync-conflict-resolver/favorites.json
 
+# Atlas localizer — runtime staging (slices, generated images, outputs)
+atlas-localizer/work/
+__pycache__/
+
 # OS
 .DS_Store
+# Atlas localizer — exported per-locale atlases (generated artifacts)
+exports/
