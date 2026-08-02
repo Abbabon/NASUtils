@@ -1,0 +1,69 @@
+name: obtainium-config
+
+on:
+  schedule:
+    # Mondays 06:00 UTC — upstream releases roughly weekly.
+    - cron: "0 6 * * 1"
+  push:
+    paths:
+      - "obtainium-config/**"
+  workflow_dispatch:
+    inputs:
+      bump_base:
+        description: "Bump base.lock.json to upstream's newest release"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: obtainium-config
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Scheduled runs chase upstream; push runs only verify what's committed.
+      - name: Build
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ inputs.bump_base }}" = "true" ]; then
+            python build.py --bump-base
+          else
+            python build.py
+          fi
+
+      - name: Validate
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python validate.py --scope all
+
+      # On push, a dirty tree means someone edited the overlay without rebuilding.
+      - name: Fail if dist/ was not rebuilt
+        if: github.event_name == 'push'
+        run: git diff --exit-code -- dist/ || {
+          echo "::error::dist/ is stale — run 'python build.py' and commit the result";
+          exit 1;
+          }
+
+      - name: Commit refreshed packs
+        if: github.event_name != 'push'
+        run: |
+          if git diff --quiet -- dist/ base.lock.json; then
+            echo "nothing changed"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dist/ base.lock.json
+          git commit -m "obtainium-config: refresh packs from upstream $(python -c 'import json;print(json.load(open("base.lock.json"))["version"])')"
+          git push

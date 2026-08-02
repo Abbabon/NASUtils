@@ -6,6 +6,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 NASUtils is a collection of utilities for personal NAS management. The repository contains standalone scripts for file organization, archive creation, ROM management, and YouTube video downloading. Each utility is designed to be run independently via command line.
 
+## GitHub Account
+
+**Always use the `Abbabon` account for this repository.** Never `amitnglaive`, even when it is the
+active `gh` account.
+
+- Remote: `git@github.com:Abbabon/NASUtils.git` — this repo is **public**
+- Before any `gh` command that writes (PRs, releases, repo settings), select the account explicitly:
+  ```sh
+  gh auth switch --user Abbabon
+  # or per-command, without changing global state:
+  GH_HOST=github.com gh <cmd>   # after confirming `gh auth status` shows Abbabon active
+  ```
+- `amitnglaive` also lacks the `workflow` scope, so pushes touching `.github/workflows/` will be
+  rejected under that account.
+- Commit identity is pinned **repo-locally** so the global work identity never leaks into this
+  public history (the global config remains `amit@glaivegames.com` and is untouched):
+  ```sh
+  git config user.name  "Abbabon"
+  git config user.email "netanel.amit@gmail.com"
+  ```
+  Verify with `git config user.email` before committing; note some pre-existing commits in history
+  were authored as `AmitN <amit@glaivegames.com>`.
+- Because the repo is public, never commit `.env`, NAS IPs, hostnames, or tokens. `.env` is
+  gitignored and has never been committed — keep it that way.
+
 ## Architecture
 
 The project is organized into focused sub-projects, each in its own directory:
@@ -49,6 +74,17 @@ The project is organized into focused sub-projects, each in its own directory:
 - **sync_conflict_resolver.py** - Interactively resolves Syncthing `*.sync-conflict-*` files: recursively scans a path, shows a colored diff (small text files) or metadata comparison (binary/large), and prompts per conflict to keep original/conflict, skip, open in editor, or quit. Stdlib only.
 - **favorites.example.json** - Sample favorites config (saved scan paths)
 - **README.md** - Usage, key bindings, favorites format, and the one-device-at-a-time caveat
+
+### Obtainium Config (`obtainium-config/` directory)
+Generates per-device [Obtainium](https://github.com/ImranR98/Obtainium) app packs for Android retro handhelds, as a thin overlay on a pinned upstream base pack. Stdlib only.
+- **base.lock.json** - Pinned upstream repo (`RJNY/Obtainium-Emulation-Pack`) + release tag and per-variant asset names
+- **overlay.json** - Local additions, patches, and per-profile excludes; the only file normally edited. `additionalSettings` is authored as a nested object and serialized to Obtainium's JSON-encoded string at build time
+- **profiles.json** - One entry per physical device (`thor`, `odin2`, `nova`) selecting a base variant
+- **build.py** - Base + overlay → `dist/<profile>.json`; strips `*-creds` keys and `_`-prefixed notes; `--bump-base` adopts upstream's newest release, `--check` gates staleness
+- **validate.py** - Structural checks (required keys, `additionalSettings` decodes, regexes compile, duplicate IDs) plus live GitHub release resolution confirming a matching APK asset exists
+- **dist/** - Generated and committed; this is what gets imported on the device
+- **.cache/** - Gitignored upstream release assets
+- CI: `.github/workflows/obtainium-config.yaml` (weekly upstream bump + commit; on-push staleness gate)
 
 ### ROM Management Suite (`roms/` directory)
 - **countRoms.py** - Counts ROM files by extension across directories
@@ -101,6 +137,17 @@ python sync-conflict-resolver/sync_conflict_resolver.py /path/to/folder
 python sync-conflict-resolver/sync_conflict_resolver.py /path/to/folder --dry-run
 python sync-conflict-resolver/sync_conflict_resolver.py            # favorites menu
 python sync-conflict-resolver/sync_conflict_resolver.py /path/to/folder --auto original
+
+# Build per-device Obtainium packs (writes obtainium-config/dist/<profile>.json)
+cd obtainium-config && python build.py
+cd obtainium-config && python build.py --profile thor
+cd obtainium-config && python build.py --bump-base     # adopt newest upstream release
+cd obtainium-config && python build.py --check         # exit 1 if dist/ is stale
+
+# Validate before importing on a handheld
+cd obtainium-config && python validate.py                        # structure + local entries
+cd obtainium-config && GITHUB_TOKEN=... python validate.py --scope all
+cd obtainium-config && python validate.py --scope none           # offline only
 
 # Speed up or slow down a video (pitch-preserved audio)
 video-editor/speed.sh clip.mp4 2               # 2x faster  -> clip_2x.mp4
