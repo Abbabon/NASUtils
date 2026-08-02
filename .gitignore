@@ -23,3 +23,6 @@ __pycache__/
 .DS_Store
 # Atlas localizer — exported per-locale atlases (generated artifacts)
 exports/
+
+# obtainium-config: cached upstream release assets
+obtainium-config/.cache/
