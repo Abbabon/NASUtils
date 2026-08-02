@@ -1,0 +1,112 @@
+{
+  "_comment": [
+    "Local additions and patches layered on top of the pinned upstream base pack.",
+    "Authoring format: 'additionalSettings' is a nested object here; build.py serializes it",
+    "to the JSON-encoded string Obtainium's importer expects. Any key you omit falls back to",
+    "the source's default (Obtainium fills them in via appJSONCompatibilityModifiers on import).",
+    "Only id / url / author / name are strictly required."
+  ],
+
+  "apps": [
+    {
+      "slug": "shizuku",
+      "profiles": ["thor", "odin2", "nova"],
+      "reason": "Not present in any upstream pack. Prerequisite for several emulator/tuning apps that need elevated APIs without root.",
+      "app": {
+        "id": "moe.shizuku.privileged.api",
+        "url": "https://github.com/RikkaApps/Shizuku",
+        "author": "RikkaApps",
+        "name": "Shizuku",
+        "preferredApkIndex": 0,
+        "categories": ["Utilities"],
+        "overrideSource": "GitHub",
+        "allowIdChange": false,
+        "additionalSettings": {
+          "about": "Run system APIs with adb/root privileges from normal apps. Required by several tuning and file-access tools."
+        }
+      }
+    },
+    {
+      "slug": "wayfinder",
+      "profiles": ["thor"],
+      "reason": "Not present in any upstream pack. AYN Thor only - swaps which physical screen an app renders on.",
+      "app": {
+        "id": "com.thorwayfinder.app",
+        "url": "https://github.com/Thor-Wayfinder/thor-wayfinder",
+        "author": "Thor-Wayfinder",
+        "name": "Wayfinder",
+        "preferredApkIndex": 0,
+        "categories": ["Utilities"],
+        "overrideSource": "GitHub",
+        "allowIdChange": false,
+        "additionalSettings": {
+          "about": "AYN Thor: choose which screen an app is displayed on.",
+          "versionDetection": false,
+          "_note_versionDetection": "Tag is 'beta-v0.1' but versionName is '1.0'; leaving detection on would report a permanent phantom update."
+        }
+      }
+    },
+    {
+      "slug": "thortune",
+      "profiles": ["thor"],
+      "reason": "Exists in RJNY's source but carries meta.excludeFromExport, so it is absent from BOTH generated packs. Re-added here for the Thor.",
+      "app": {
+        "id": "com.androosio.thortune",
+        "url": "https://github.com/androosio/thortune",
+        "author": "androosio",
+        "name": "ThorTune",
+        "preferredApkIndex": 0,
+        "categories": ["Utilities"],
+        "overrideSource": "GitHub",
+        "allowIdChange": false,
+        "additionalSettings": {
+          "about": "AYN Thor system tweaks: JamesDSP system-wide audio DSP and display saturation, with a lower-screen companion panel."
+        }
+      }
+    },
+    {
+      "slug": "self",
+      "profiles": [],
+      "reason": "Track-only entry for this repo, so Obtainium can notify you when your own pack changes. DISABLED (empty profiles) on purpose: Obtainium resolves track-only apps against GitHub RELEASES, and this pack is refreshed by CI commits, not releases. It would sit silently on 0.1.4 forever. Enable it only if you start cutting a release tag when dist/ changes.",
+      "app": {
+        "id": "nasutils-obtainium-config",
+        "url": "https://github.com/Abbabon/NASUtils",
+        "author": "Abbabon",
+        "name": "My Obtainium Config",
+        "preferredApkIndex": 0,
+        "categories": ["Track Only"],
+        "overrideSource": "GitHub",
+        "allowIdChange": false,
+        "additionalSettings": {
+          "trackOnly": true,
+          "about": "This config pack. Track-only: notifies on change, never installs."
+        }
+      }
+    }
+  ],
+
+  "overrides": [
+    {
+      "slug": "clustertune-canonical-url",
+      "profiles": ["*"],
+      "match": { "id": "com.aure.clustertune" },
+      "reason": "Upstream points at the pre-rename slug 'AurelioB/cluster-tune'. GitHub redirects it today, but redirects are not guaranteed to survive a future slug reuse.",
+      "patch": {
+        "url": "https://github.com/AurelioB/ClusterTune"
+      }
+    }
+  ],
+
+  "excludes": [
+    {
+      "profiles": ["odin2", "nova"],
+      "match": { "id": "me.magnum.melondualds" },
+      "reason": "Dual-screen melonDS fork - only meaningful on the Thor."
+    },
+    {
+      "profiles": ["thor", "nova"],
+      "match": { "id": "de.langerhans.odintools" },
+      "reason": "AYN Odin-specific system tweaks."
+    }
+  ]
+}
