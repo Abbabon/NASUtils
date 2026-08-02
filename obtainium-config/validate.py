@@ -172,16 +172,39 @@ def check_release(profile, app, findings, token=None):
     if settings.get("trackOnly"):
         return "trackonly"
 
+    # Mirror Obtainium's release selection (lib/app_sources/github.dart): drop prereleases and
+    # drafts, then apply the title filter (inclusion, matched against the release name and
+    # falling back to the tag) and the release-notes filter, and take the first survivor.
     include_pre = bool(settings.get("includePrereleases"))
-    candidates = [r for r in releases if include_pre or not r.get("prerelease")]
+    title_filter = settings.get("filterReleaseTitlesByRegEx") or None
+    notes_filter = settings.get("filterReleaseNotesByRegEx") or None
+
+    candidates = []
+    for release in releases:
+        if release.get("draft"):
+            continue
+        if release.get("prerelease") and not include_pre:
+            continue
+        title = (release.get("name") or release.get("tag_name") or "").strip()
+        if title_filter and not re.search(title_filter, title):
+            continue
+        if notes_filter and not re.search(notes_filter, (release.get("body") or "").strip()):
+            continue
+        candidates.append(release)
+
     if not candidates:
-        if releases:
+        if not releases:
+            findings.error(profile, name, f"{owner}/{project} has no releases")
+        elif title_filter or notes_filter:
+            findings.error(
+                profile, name,
+                "no release in the latest 10 passes the configured title/notes filter",
+            )
+        else:
             findings.error(
                 profile, name,
                 "only prereleases exist but includePrereleases is off - no update will ever resolve",
             )
-        else:
-            findings.error(profile, name, f"{owner}/{project} has no releases")
         return "failed"
 
     release = candidates[0]
