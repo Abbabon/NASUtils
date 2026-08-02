@@ -147,8 +147,39 @@ app URLs and discards all per-app settings. So the flow is:
 2. Download it
 3. Obtainium → Import/Export → Obtainium Import → pick the file
 
-Existing apps are matched by package ID and updated in place; the import does not uninstall
-anything.
+### What importing actually does
+
+Import is **additive and idempotent**. Apps are matched by package ID: new ones are added, existing
+ones have their config updated, and nothing is ever deleted or uninstalled. Removing an app from
+this pack does **not** remove it from the handheld — you uninstall that yourself.
+
+Importing 64 apps does **not** install 64 apps. It adds 64 *entries* to Obtainium's list, all
+showing as not-installed. You tap the ones you actually want. Because the pack ships
+`onlyCheckInstalledOrTrackOnlyApps: true`, the ones you never install are never checked for
+updates, so they cost no battery or network.
+
+The import also applies three settings from the pack: `categories` (the colour map), 
+`groupByCategory`, and `onlyCheckInstalledOrTrackOnlyApps`. No other Obtainium setting is touched.
+
+### Two update loops, only one of which is automatic
+
+**App versions — automatic, ignore this repo entirely.** Once an app is in Obtainium and installed,
+Obtainium checks its release page on its own schedule and notifies (or installs) when a new version
+appears. New Dolphin build, new RetroArch — that just happens. You never re-import for this.
+
+**The pack itself — the repo self-updates, the handheld does not.** CI refreshes `dist/` weekly:
+adopting upstream's newest release, picking up newly added apps, and re-verifying every config still
+resolves. That updates the JSON *in this repo*. Obtainium has no fetch-from-URL for configs, so the
+device only sees those changes when you re-import.
+
+So: re-import when you want newly added apps or a config fix. Realistically a few times a year.
+Nothing breaks if you never do — your installed apps keep updating regardless.
+
+To see whether a re-import is worth it, check what changed:
+
+```sh
+git log --oneline -- obtainium-config/dist/
+```
 
 ## Two things that will bite you
 
