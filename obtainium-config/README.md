@@ -63,15 +63,57 @@ authenticated request gets 5,000/hour.
 with "Public Repositories (read-only)". Do not reuse a `gh auth token` — those carry `repo`, which
 is full read/write to every private repo you own, for no benefit here.
 
-Keep it out of shell history:
-
-```sh
-read -rs GITHUB_TOKEN && export GITHUB_TOKEN
-python validate.py --scope all
-```
-
 The token is only ever sent as an `Authorization` header to `api.github.com`. It is never logged,
 never written to `dist/`, and never committed.
+
+**You usually do not need one.** CI runs `--scope all` with GitHub's ephemeral workflow token on
+every push, so the full sweep happens automatically. A personal token is only for running the full
+sweep locally before you push.
+
+#### Option A — one session, nothing stored (simplest)
+
+```sh
+cd obtainium-config
+read -rs GITHUB_TOKEN && export GITHUB_TOKEN    # paste the token, press Enter (nothing echoes)
+python3 validate.py --scope all
+```
+
+`read -rs` keeps the token out of `~/.zsh_history`. It lives only in that terminal tab and is gone
+when you close it.
+
+#### Option B — persist it in the repo's gitignored .env
+
+The repo root already has a gitignored `.env`. Add a line to it:
+
+```sh
+GITHUB_TOKEN=github_pat_xxxxxxxx
+```
+
+Then load it before running:
+
+```sh
+cd obtainium-config
+set -a; source ../.env; set +a
+python3 validate.py --scope all
+```
+
+`.env` is in `.gitignore` and has never been committed. Confirm before trusting it:
+
+```sh
+git check-ignore -v ../.env      # should print the .gitignore rule
+```
+
+#### Checking it worked
+
+Without a token you'll see `GitHub API 403` / rate-limit warnings partway through. With one, every
+profile reports a clean count:
+
+```
+INFO thor   64 apps, live-checked 53/64 ok
+OK    0 errors, 12 warning(s)
+```
+
+(53 of 64 because 7 apps are non-GitHub sources with no API to resolve, plus track-only entries.)
 
 `--scope overlay` (the default) checks only locally-authored entries — a handful of requests, which
 is what you want during normal editing. CI uses `--scope all` with the workflow token.
