@@ -94,6 +94,17 @@
       "patch": {
         "url": "https://github.com/AurelioB/ClusterTune"
       }
+    },
+    {
+      "slug": "armsx2-skip-ios-releases",
+      "profiles": ["*"],
+      "match": { "id": "com.armsx2" },
+      "reason": "ARMSX2 interleaves iOS-only releases with Android ones. As of 2026-08-02 the newest non-prerelease is 'ARMSX2 iOS 2.5.1', which ships only an .ipa - so Obtainium resolves it, finds no APK, and the app never updates. The Android build (2.6.6.2) is two releases down. filterReleaseTitlesByRegEx is an INCLUSION filter on the release title (falling back to the tag), so this keeps 'ARMSX2 <digit>...' and skips both 'ARMSX2 iOS ...' and 'ARMSX2 nightly ...'.",
+      "patch": {
+        "additionalSettings": {
+          "filterReleaseTitlesByRegEx": "^ARMSX2 \\d"
+        }
+      }
     }
   ],
 
