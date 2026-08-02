@@ -35,6 +35,14 @@ REGEX_SETTINGS = (
 )
 USER_AGENT = "NASUtils-obtainium-config/1.0"
 
+# Obtainium's autoApkFilterByArch (default on) picks the right ABI at install time, so an
+# arch-split release is not ambiguous even though it carries several APKs. Only warn about
+# multiple APKs when they differ by something Obtainium cannot resolve for us - build flavours
+# like root/nonRoot, mainline/fork, or vendor variants.
+ARCH_TOKENS = (
+    "arm64-v8a", "armeabi-v7a", "x86_64", "x86", "arm64", "arm32", "armv7", "aarch64", "universal",
+)
+
 log = logging.getLogger("validate")
 
 
@@ -59,6 +67,14 @@ def api_get(url, token=None):
     req = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(req, timeout=30) as resp:
         return json.loads(resp.read()), resp.headers
+
+
+def arch_split(apks):
+    """True if these APKs look like one build published per ABI."""
+    tagged = {
+        token for name in apks for token in ARCH_TOKENS if token in name.lower()
+    }
+    return len(tagged) >= 2
 
 
 def parse_github(url):
@@ -178,6 +194,7 @@ def check_release(profile, app, findings, token=None):
         )
         return "failed"
 
+    auto_arch = settings.get("autoApkFilterByArch", True)
     pattern = settings.get("apkFilterRegEx")
     if pattern:
         try:
@@ -194,15 +211,21 @@ def check_release(profile, app, findings, token=None):
                 f"apkFilterRegEx {pattern!r} matches none of {apks} in {release['tag_name']}",
             )
             return "failed"
-        if len(matched) > 1 and app.get("preferredApkIndex", 0) == 0:
+        if len(matched) > 1 and not auto_arch and app.get("preferredApkIndex", 0) == 0:
             findings.warn(
                 profile, name,
                 f"apkFilterRegEx matches {len(matched)} assets {matched}; index 0 wins",
             )
-    elif len(apks) > 1 and app.get("preferredApkIndex", 0) == 0:
+        elif len(matched) > 1 and auto_arch and not arch_split(matched):
+            findings.warn(
+                profile, name,
+                f"apkFilterRegEx matches {len(matched)} non-arch variants {matched}; index 0 wins",
+            )
+    elif len(apks) > 1 and not (auto_arch and arch_split(apks)) \
+            and app.get("preferredApkIndex", 0) == 0:
         findings.warn(
             profile, name,
-            f"{len(apks)} APKs and no apkFilterRegEx {apks}; index 0 wins",
+            f"{len(apks)} APK variants and no apkFilterRegEx {apks}; index 0 wins",
         )
 
     log.debug("[%s] %s -> %s ok", profile, name, release["tag_name"])
