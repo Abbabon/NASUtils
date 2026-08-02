@@ -1,0 +1,27 @@
+{
+  "_comment": [
+    "One entry per physical device. 'base' selects which upstream pack variant to start from",
+    "(see base.lock.json assets). Overlay apps/overrides/excludes opt in by profile name.",
+    "Note: upstream's 'dual-screen' pack is a strict superset of 'standard' (+4 apps as of v7.13.0),",
+    "not a separately curated dual-screen build."
+  ],
+
+  "profiles": {
+    "thor": {
+      "device": "AYN Thor",
+      "base": "dual-screen",
+      "notes": "Dual-screen handheld. Gets Wayfinder + ThorTune; OdinTools excluded."
+    },
+    "odin2": {
+      "device": "AYN Odin 2",
+      "base": "standard",
+      "notes": "Single screen. Keeps OdinTools; dual-screen melonDS fork excluded."
+    },
+    "nova": {
+      "device": "Anbernic RG Nova",
+      "base": "standard",
+      "provisional": true,
+      "notes": "Device not in hand yet - arch and screen layout unconfirmed. Starts as a stock standard pack minus vendor-specific tools. Revisit once it arrives."
+    }
+  }
+}
