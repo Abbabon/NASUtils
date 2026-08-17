@@ -1,7 +1,7 @@
 {
   "_comment": "Pinned upstream base pack. Bump 'version' to adopt a newer release, then re-run build.py + validate.py.",
   "repo": "RJNY/Obtainium-Emulation-Pack",
-  "version": "v7.14.0",
+  "version": "v7.15.1",
   "assets": {
     "standard": "obtainium-emulation-pack-{version}.json",
     "dual-screen": "obtainium-emulation-pack-dual-screen-{version}.json"
