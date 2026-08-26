@@ -116,6 +116,17 @@
           "filterReleaseTitlesByRegEx": "^ARMSX2 \\d"
         }
       }
+    },
+    {
+      "slug": "armsx2-android13-apk",
+      "profiles": ["nova"],
+      "match": { "id": "com.armsx2" },
+      "reason": "ARMSX2 splits its release by Android SDK level, not by arch (a11-sdk30 / a13-sdk33 / a15-sdk35 / legacy-sdk26), so Obtainium's autoApkFilterByArch cannot disambiguate and preferredApkIndex 0 lands on the Android 11 build. The Retroid Pocket Nova runs Android 13 on an armv9 QCS8550, so pin the a13/sdk33 armv8.2 build. Anchored on the suffix rather than the version so it survives upstream bumps; if ARMSX2 ever drops the a13 build the filter matches nothing and validate.py fails loudly, which is the outcome we want. Merges on top of the '*' armsx2-skip-ios-releases rule (build.py shallow-merges additionalSettings in overlay order). Thor and Odin 2 are left on index 0 until their Android versions are confirmed.",
+      "patch": {
+        "additionalSettings": {
+          "apkFilterRegEx": "-a13-armv8\\.2-sdk33\\.apk$"
+        }
+      }
     }
   ],
 
@@ -123,7 +134,7 @@
     {
       "profiles": ["odin2", "nova"],
       "match": { "id": "me.magnum.melondualds" },
-      "reason": "Dual-screen melonDS fork - only meaningful on the Thor."
+      "reason": "Dual-screen melonDS fork - only meaningful on the Thor. Renamed MelonDualDS -> WatermelonDS upstream in v7.16.0; matched by package id, so the rename is a non-event."
     },
     {
       "profiles": ["thor", "nova"],

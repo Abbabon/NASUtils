@@ -122,9 +122,9 @@ is what you want during normal editing. CI uses `--scope all` with the workflow 
 
 | Profile | Device | Base | Apps | Notes |
 | --- | --- | --- | --- | --- |
-| `thor` | AYN Thor | dual-screen | 64 | + Shizuku, Wayfinder, ThorTune; − OdinTools |
-| `odin2` | AYN Odin 2 | standard | 58 | + Shizuku; − MelonDualDS (dual-screen fork) |
-| `nova` | Anbernic RG Nova | standard | 57 | **Provisional** — device not in hand; arch and screen layout unconfirmed |
+| `thor` | AYN Thor | dual-screen | 68 | + Shizuku, Wayfinder, ThorTune; − OdinTools |
+| `odin2` | AYN Odin 2 | standard | 62 | + Shizuku; − WatermelonDS (dual-screen fork) |
+| `nova` | Retroid Pocket Nova | standard | 61 | + Shizuku; − WatermelonDS, OdinTools; ARMSX2 pinned to the Android-13 APK |
 
 Note: upstream's `dual-screen` variant is a strict **superset** of `standard` (+4 apps as of
 v7.13.0), not a separately curated dual-screen build. Genuine per-device tailoring happens in

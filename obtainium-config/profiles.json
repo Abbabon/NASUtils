@@ -18,10 +18,9 @@
       "notes": "Single screen. Keeps OdinTools; dual-screen melonDS fork excluded."
     },
     "nova": {
-      "device": "Anbernic RG Nova",
+      "device": "Retroid Pocket Nova",
       "base": "standard",
-      "provisional": true,
-      "notes": "Device not in hand yet - arch and screen layout unconfirmed. Starts as a stock standard pack minus vendor-specific tools. Revisit once it arrives."
+      "notes": "Single screen (4.5\" 4:3 AMOLED). Qualcomm QCS8550, arm64-v8a, Android 13. Dual-screen melonDS fork and AYN-specific OdinTools excluded."
     }
   }
 }

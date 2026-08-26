@@ -26,8 +26,14 @@ active `gh` account.
   git config user.name  "Abbabon"
   git config user.email "netanel.amit@gmail.com"
   ```
-  Verify with `git config user.email` before committing; note some pre-existing commits in history
-  were authored as `AmitN <amit@glaivegames.com>`.
+  Verify with `git config user.email` before committing. History was rewritten on 2026-08-26 so
+  every human commit is now `Abbabon <netanel.amit@gmail.com>`; no `amit@glaivegames.com` remains
+  on any branch or tag.
+- A `pre-commit` hook in `.githooks/` refuses any commit made under a different identity. It is
+  checked in but hooks are not, so **enable it once per clone**:
+  ```sh
+  git config core.hooksPath .githooks
+  ```
 - Because the repo is public, never commit `.env`, NAS IPs, hostnames, or tokens. `.env` is
   gitignored and has never been committed — keep it that way.
 

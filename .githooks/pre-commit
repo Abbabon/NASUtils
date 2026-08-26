@@ -1,0 +1,29 @@
+#!/bin/sh
+# Guard: this repo is public and must only ever be committed to from the Abbabon
+# GitHub account. The global git identity here is a work address, so a fresh clone
+# that forgets the repo-local override would silently leak it into public history.
+# See CLAUDE.md > GitHub Account.
+#
+# Enable (once per clone):  git config core.hooksPath .githooks
+
+expected_email="netanel.amit@gmail.com"
+expected_name="Abbabon"
+
+email=$(git config user.email)
+name=$(git config user.name)
+
+if [ "$email" != "$expected_email" ] || [ "$name" != "$expected_name" ]; then
+    cat >&2 <<MSG
+pre-commit: wrong git identity for this repository.
+
+  configured: $name <$email>
+  expected:   $expected_name <$expected_email>
+
+Fix it repo-locally (do not touch the global config):
+
+  git config user.name  "$expected_name"
+  git config user.email "$expected_email"
+
+MSG
+    exit 1
+fi
