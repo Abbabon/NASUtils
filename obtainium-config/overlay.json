@@ -118,6 +118,17 @@
       }
     },
     {
+      "slug": "ludashi-vanilla-apk",
+      "profiles": ["*"],
+      "match": { "id": "com.winlator.ludashi" },
+      "reason": "Upstream pins apkFilterRegEx 'bionic-vanilla', which stopped matching at Ludashi v4.0 (2026-08): assets were renamed to ludashi-build.apk / Redmagic_build.apk / vanilla-build.apk, so Obtainium resolves no APK and validate.py fails. The prefix has never been stable ('bionic-vanilla', 'vanilla-bionic', 'dev-vanilla', now 'vanilla-build'); 'vanilla' is the one token present in every vanilla build since 2.6, and it matches neither the Ludashi-branded nor the RedMagic-specific APK. Keeping upstream's choice of the vanilla build.",
+      "patch": {
+        "additionalSettings": {
+          "apkFilterRegEx": "vanilla"
+        }
+      }
+    },
+    {
       "slug": "armsx2-android13-apk",
       "profiles": ["nova"],
       "match": { "id": "com.armsx2" },

@@ -149,7 +149,7 @@ def check_release(profile, app, findings, token=None):
     owner, project = repo
     try:
         releases, headers = api_get(
-            f"https://api.github.com/repos/{owner}/{project}/releases?per_page=10", token
+            f"https://api.github.com/repos/{owner}/{project}/releases?per_page=100", token
         )
     except urllib.error.HTTPError as exc:
         if exc.code == 403 and "rate limit" in str(exc.headers.get("x-ratelimit-remaining", "")):
@@ -172,6 +172,8 @@ def check_release(profile, app, findings, token=None):
     if settings.get("trackOnly"):
         return "trackonly"
 
+    # One page of 100, like Obtainium itself: repos that cut a nightly prerelease every day
+    # (ARMSX1) push their last stable release off a smaller window and look permanently broken.
     # Mirror Obtainium's release selection (lib/app_sources/github.dart): drop prereleases and
     # drafts, then apply the title filter (inclusion, matched against the release name and
     # falling back to the tag) and the release-notes filter, and take the first survivor.
@@ -198,7 +200,7 @@ def check_release(profile, app, findings, token=None):
         elif title_filter or notes_filter:
             findings.error(
                 profile, name,
-                "no release in the latest 10 passes the configured title/notes filter",
+                "no release in the latest 100 passes the configured title/notes filter",
             )
         else:
             findings.error(
