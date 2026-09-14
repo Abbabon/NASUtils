@@ -144,7 +144,7 @@
     },
     {
       "id": "org.ppsspp.ppsspp",
-      "url": "https://www.ppsspp.org/download",
+      "url": "https://www.ppsspp.org/download/",
       "author": "www.ppsspp.org",
       "name": "PPSSPP",
       "preferredApkIndex": 0,
