@@ -806,6 +806,19 @@
       "overrideSource": "GitHub"
     },
     {
+      "id": "com.med.sleepmanager",
+      "url": "https://github.com/Baggio94/SleepManager",
+      "author": "Baggio94",
+      "name": "Sleepmanager",
+      "preferredApkIndex": 0,
+      "additionalSettings": "{\"includePrereleases\":false,\"fallbackToOlderReleases\":true,\"filterReleaseTitlesByRegEx\":\"\",\"filterReleaseNotesByRegEx\":\"\",\"verifyLatestTag\":false,\"sortMethodChoice\":\"date\",\"useLatestAssetDateAsReleaseDate\":false,\"releaseTitleAsVersion\":false,\"GHReqPrefix\":\"\",\"trackOnly\":false,\"versionExtractionRegEx\":\"\",\"matchGroupToUse\":\"\",\"versionDetection\":true,\"releaseDateAsVersion\":false,\"useVersionCodeAsOSVersion\":false,\"apkFilterRegEx\":\"\",\"invertAPKFilter\":false,\"autoApkFilterByArch\":true,\"appName\":\"\",\"appAuthor\":\"\",\"shizukuPretendToBeGooglePlay\":false,\"allowInsecure\":false,\"exemptFromBackgroundUpdates\":false,\"skipUpdateNotifications\":false,\"about\":\"\",\"refreshBeforeDownload\":false,\"includeZips\":false,\"zippedApkFilterRegEx\":\"\"}",
+      "categories": [
+        "Utilities"
+      ],
+      "allowIdChange": false,
+      "overrideSource": "GitHub"
+    },
+    {
       "id": "moe.shizuku.privileged.api",
       "url": "https://github.com/RikkaApps/Shizuku",
       "author": "RikkaApps",
