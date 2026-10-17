@@ -462,19 +462,8 @@ class Program
 
         private List<AudioFormat> GetUniqueAudioTracks(List<AudioFormat> formats)
         {
-            var uniqueTracks = new List<AudioFormat>();
-            var seenLanguages = new HashSet<string>();
-
-            foreach (var format in formats)
-            {
-                if (!seenLanguages.Contains(format.Language))
-                {
-                    uniqueTracks.Add(format);
-                    seenLanguages.Add(format.Language);
-                }
-            }
-
-            return uniqueTracks;
+            // yt-dlp lists worst to best, so the last format per language is the best
+            return formats.GroupBy(f => f.Language).Select(g => g.Last()).ToList();
         }
 
         private async Task DownloadWithYtDlpAsync(string url, VideoFormat video, List<AudioFormat> audioTracks, string tempDir, string outputDir, bool withSubtitles = true)
