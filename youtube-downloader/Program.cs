@@ -39,10 +39,11 @@ class Program
     {
         if (args.Length == 0)
         {
-            Console.WriteLine("Usage: dotnet run <url> [output-directory] [--items <selection>]");
+            Console.WriteLine("Usage: dotnet run <url> [output-directory] [--items <selection>] [--cookies-from-browser <browser>]");
             Console.WriteLine("  url: YouTube video or playlist URL");
             Console.WriteLine("  output-directory: Directory to save files (default: downloads)");
             Console.WriteLine("  --items: Download specific playlist items (e.g. 1, 1,3,5, 2-7, 1,3-5,8)");
+            Console.WriteLine("  --cookies-from-browser: Pass browser cookies to yt-dlp (e.g. chrome, firefox, safari)");
             return 1;
         }
 
@@ -50,12 +51,17 @@ class Program
         string url = args[0];
         string outputDir = "downloads";
         string? itemsSpec = null;
+        string? cookiesBrowser = null;
 
         for (int i = 1; i < args.Length; i++)
         {
             if (args[i] == "--items" && i + 1 < args.Length)
             {
                 itemsSpec = args[++i];
+            }
+            else if (args[i] == "--cookies-from-browser" && i + 1 < args.Length)
+            {
+                cookiesBrowser = args[++i];
             }
             else if (!args[i].StartsWith("--"))
             {
@@ -65,7 +71,7 @@ class Program
 
         try
         {
-            var downloader = new YoutubeDownloader();
+            var downloader = new YoutubeDownloader(cookiesBrowser);
             if (downloader.IsPlaylistUrl(url))
             {
                 HashSet<int>? selectedItems = null;
@@ -129,6 +135,13 @@ class Program
 
     public class YoutubeDownloader
     {
+        private readonly string _cookieArgs;
+
+        public YoutubeDownloader(string? cookiesBrowser = null)
+        {
+            _cookieArgs = cookiesBrowser == null ? "" : $"--cookies-from-browser \"{cookiesBrowser}\" ";
+        }
+
         public async Task<DownloadResult> DownloadVideoAsync(string url, string outputDir)
         {
             string videoId = ExtractVideoId(url);
@@ -196,7 +209,7 @@ class Program
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = "yt-dlp",
-                    Arguments = $"--flat-playlist -J \"{url}\"",
+                    Arguments = $"{_cookieArgs}--flat-playlist -J \"{url}\"",
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
@@ -401,7 +414,7 @@ class Program
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = "yt-dlp",
-                    Arguments = $"-F \"{url}\"",
+                    Arguments = $"{_cookieArgs}-F \"{url}\"",
                     RedirectStandardOutput = true,
                     UseShellExecute = false,
                     CreateNoWindow = true
@@ -480,7 +493,7 @@ class Program
 
             var subtitleLangs = string.Join(",", PopularSubtitleLanguages);
 
-            var args = $"--no-warnings " +
+            var args = $"{_cookieArgs}--no-warnings " +
                        $"-f \"{combinedFormat}\" " +
                        $"--audio-multistreams ";
 
