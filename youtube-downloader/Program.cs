@@ -39,11 +39,12 @@ class Program
     {
         if (args.Length == 0)
         {
-            Console.WriteLine("Usage: dotnet run <url> [output-directory] [--items <selection>] [--cookies-from-browser <browser>]");
+            Console.WriteLine("Usage: dotnet run <url> [output-directory] [--items <selection>] [--cookies-from-browser <browser>] [--delay <seconds>]");
             Console.WriteLine("  url: YouTube video or playlist URL");
             Console.WriteLine("  output-directory: Directory to save files (default: downloads)");
             Console.WriteLine("  --items: Download specific playlist items (e.g. 1, 1,3,5, 2-7, 1,3-5,8)");
             Console.WriteLine("  --cookies-from-browser: Pass browser cookies to yt-dlp (e.g. chrome, firefox, safari)");
+            Console.WriteLine("  --delay: Base pause between playlist videos in seconds, +/-25% random jitter (default: 60)");
             return 1;
         }
 
@@ -52,6 +53,7 @@ class Program
         string outputDir = "downloads";
         string? itemsSpec = null;
         string? cookiesBrowser = null;
+        double delaySeconds = 60;
 
         for (int i = 1; i < args.Length; i++)
         {
@@ -62,6 +64,14 @@ class Program
             else if (args[i] == "--cookies-from-browser" && i + 1 < args.Length)
             {
                 cookiesBrowser = args[++i];
+            }
+            else if (args[i] == "--delay" && i + 1 < args.Length)
+            {
+                if (!double.TryParse(args[++i], out delaySeconds) || delaySeconds < 0)
+                {
+                    Console.WriteLine("Error: --delay must be a non-negative number of seconds.");
+                    return 1;
+                }
             }
             else if (!args[i].StartsWith("--"))
             {
@@ -77,7 +87,7 @@ class Program
                 HashSet<int>? selectedItems = null;
                 if (itemsSpec != null)
                     selectedItems = ParseItemSelection(itemsSpec);
-                await downloader.DownloadPlaylistAsync(url, outputDir, selectedItems);
+                await downloader.DownloadPlaylistAsync(url, outputDir, selectedItems, delaySeconds);
             }
             else
             {
@@ -255,7 +265,7 @@ class Program
             return (playlistTitle, entries);
         }
 
-        public async Task DownloadPlaylistAsync(string url, string outputDir, HashSet<int>? selectedItems = null)
+        public async Task DownloadPlaylistAsync(string url, string outputDir, HashSet<int>? selectedItems = null, double delaySeconds = 60)
         {
             Console.WriteLine("Fetching playlist information...");
             var (playlistTitle, entries) = await GetPlaylistVideosAsync(url);
@@ -307,8 +317,9 @@ class Program
                 // Rate limiting delay between videos (skip before first)
                 if (!isFirst)
                 {
-                    Console.WriteLine("Waiting 5 seconds before next video...");
-                    await Task.Delay(5000);
+                    double wait = delaySeconds * (0.75 + Random.Shared.NextDouble() * 0.5);
+                    Console.WriteLine($"Waiting {wait:F0} seconds before next video...");
+                    await Task.Delay(TimeSpan.FromSeconds(wait));
                     Console.WriteLine();
                 }
                 isFirst = false;
