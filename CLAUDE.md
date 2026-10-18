@@ -196,6 +196,7 @@ cd youtube-downloader && dotnet run "https://youtube.com/playlist?list=PLAYLIST_
 # Slower pacing and browser cookies for long playlists (Arc: chrome:<profile path>)
 cd youtube-downloader && dotnet run "https://youtube.com/playlist?list=PLAYLIST_ID" --delay 90
 cd youtube-downloader && dotnet run "https://youtube.com/playlist?list=PLAYLIST_ID" --cookies-from-browser "chrome:<profile path>"
+cd youtube-downloader && dotnet run "https://youtube.com/watch?v=VIDEO_ID" --cookies ~/cookies.txt   # exported Netscape cookies.txt
 
 # Or build and run as executable
 cd youtube-downloader && dotnet build && ./bin/Debug/net8.0/YoutubeDownloader "https://youtube.com/watch?v=VIDEO_ID" [output_directory]
@@ -362,6 +363,9 @@ The YouTube downloader (`youtube-downloader/Program.cs`) provides:
 - **Item Selection**: Download specific playlist items by index (`--items 3`), multiple (`--items 1,3,5`), range (`--items 2-7`), or combined (`--items 1,3-5,8`)
 - **Pacing**: `--delay <seconds>` sets the base pause between playlist videos (default 60, +/-25% random jitter) to avoid YouTube's "confirm you're not a bot" block on long runs
 - **Browser Cookies**: `--cookies-from-browser <browser>` passes cookies to yt-dlp (e.g. `chrome`, `firefox`, `safari`); for Arc use `chrome:<profile path>`
+- **Cookies File**: `--cookies <file>` passes a Netscape-format `cookies.txt` to yt-dlp (use when browser cookie decryption fails, e.g. Arc, for age-restricted videos); errors if the file is missing or combined with `--cookies-from-browser`. `cookies.txt` is a secret: never commit it (gitignored)
+- **Bot-block Stop**: `--max-consecutive-failures <n>` stops a playlist after n consecutive "not a bot" failures and exits 2 (age-gate and other failures don't count)
+- **Prolonged Jobs**: `youtube-downloader/prolonged/prolonged.sh` runs a playlist in batches via a LaunchAgent (install/uninstall/status/missing); see `youtube-downloader/prolonged/README.md`
 - **Smart Quality Selection**: Downloads highest quality video format available
 - **Multi-Language Audio**: Automatically detects and downloads best audio track for each unique language with proper track titles
 - **Popular Subtitles**: Downloads subtitles for 12 popular languages (en,es,fr,de,it,pt,ru,zh,ja,ko,ar,hi) to avoid hundreds of auto-generated tracks
@@ -375,6 +379,7 @@ The YouTube downloader (`youtube-downloader/Program.cs`) provides:
 #### Dependencies
 - Requires `yt-dlp` to be installed and available in PATH
 - Requires `deno` JavaScript runtime (used by yt-dlp for YouTube extraction)
+- Requires the `yt-dlp-ejs` challenge solver (`pip install -U "yt-dlp[default]"`); without it, logged-in (`--cookies`) requests only return image formats
 - Requires `ffmpeg` to be installed and available in PATH (for video/audio processing and metadata)
 - .NET 8 runtime
 - Cross-platform compatibility (Windows, macOS, Linux)

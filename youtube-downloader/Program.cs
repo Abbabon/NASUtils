@@ -39,12 +39,14 @@ class Program
     {
         if (args.Length == 0)
         {
-            Console.WriteLine("Usage: dotnet run <url> [output-directory] [--items <selection>] [--cookies-from-browser <browser>] [--delay <seconds>]");
+            Console.WriteLine("Usage: dotnet run <url> [output-directory] [--items <selection>] [--cookies-from-browser <browser>] [--cookies <file>] [--delay <seconds>] [--max-consecutive-failures <n>]");
             Console.WriteLine("  url: YouTube video or playlist URL");
             Console.WriteLine("  output-directory: Directory to save files (default: downloads)");
             Console.WriteLine("  --items: Download specific playlist items (e.g. 1, 1,3,5, 2-7, 1,3-5,8)");
             Console.WriteLine("  --cookies-from-browser: Pass browser cookies to yt-dlp (e.g. chrome, firefox, safari)");
+            Console.WriteLine("  --cookies: Netscape-format cookies.txt file passed to yt-dlp (secret, never commit; not combinable with --cookies-from-browser)");
             Console.WriteLine("  --delay: Base pause between playlist videos in seconds, +/-25% random jitter (default: 60)");
+            Console.WriteLine("  --max-consecutive-failures: Stop the playlist after n consecutive 'not a bot' blocks, exit code 2 (default: 0 = never)");
             return 1;
         }
 
@@ -53,7 +55,9 @@ class Program
         string outputDir = "downloads";
         string? itemsSpec = null;
         string? cookiesBrowser = null;
+        string? cookiesFile = null;
         double delaySeconds = 60;
+        int maxBotFailures = 0;
 
         for (int i = 1; i < args.Length; i++)
         {
@@ -64,6 +68,18 @@ class Program
             else if (args[i] == "--cookies-from-browser" && i + 1 < args.Length)
             {
                 cookiesBrowser = args[++i];
+            }
+            else if (args[i] == "--cookies" && i + 1 < args.Length)
+            {
+                cookiesFile = args[++i];
+            }
+            else if (args[i] == "--max-consecutive-failures" && i + 1 < args.Length)
+            {
+                if (!int.TryParse(args[++i], out maxBotFailures) || maxBotFailures < 0)
+                {
+                    Console.WriteLine("Error: --max-consecutive-failures must be a non-negative integer.");
+                    return 1;
+                }
             }
             else if (args[i] == "--delay" && i + 1 < args.Length)
             {
@@ -79,15 +95,28 @@ class Program
             }
         }
 
+        if (cookiesFile != null && cookiesBrowser != null)
+        {
+            Console.WriteLine("Error: use either --cookies or --cookies-from-browser, not both.");
+            return 1;
+        }
+        if (cookiesFile != null && !File.Exists(cookiesFile))
+        {
+            Console.WriteLine($"Error: cookies file not found: {cookiesFile}");
+            return 1;
+        }
+
         try
         {
-            var downloader = new YoutubeDownloader(cookiesBrowser);
+            var downloader = new YoutubeDownloader(cookiesBrowser, cookiesFile);
             if (downloader.IsPlaylistUrl(url))
             {
                 HashSet<int>? selectedItems = null;
                 if (itemsSpec != null)
                     selectedItems = ParseItemSelection(itemsSpec);
-                await downloader.DownloadPlaylistAsync(url, outputDir, selectedItems, delaySeconds);
+                bool blocked = await downloader.DownloadPlaylistAsync(url, outputDir, selectedItems, delaySeconds, maxBotFailures);
+                if (blocked)
+                    return 2;
             }
             else
             {
@@ -147,9 +176,10 @@ class Program
     {
         private readonly string _cookieArgs;
 
-        public YoutubeDownloader(string? cookiesBrowser = null)
+        public YoutubeDownloader(string? cookiesBrowser = null, string? cookiesFile = null)
         {
-            _cookieArgs = cookiesBrowser == null ? "" : $"--cookies-from-browser \"{cookiesBrowser}\" ";
+            _cookieArgs = cookiesBrowser != null ? $"--cookies-from-browser \"{cookiesBrowser}\" "
+                : cookiesFile != null ? $"--cookies \"{Path.GetFullPath(cookiesFile)}\" " : "";
         }
 
         public async Task<DownloadResult> DownloadVideoAsync(string url, string outputDir)
@@ -265,7 +295,7 @@ class Program
             return (playlistTitle, entries);
         }
 
-        public async Task DownloadPlaylistAsync(string url, string outputDir, HashSet<int>? selectedItems = null, double delaySeconds = 60)
+        public async Task<bool> DownloadPlaylistAsync(string url, string outputDir, HashSet<int>? selectedItems = null, double delaySeconds = 60, int maxBotFailures = 0)
         {
             Console.WriteLine("Fetching playlist information...");
             var (playlistTitle, entries) = await GetPlaylistVideosAsync(url);
@@ -281,7 +311,7 @@ class Program
             if (entries.Count == 0)
             {
                 Console.WriteLine("Playlist is empty, nothing to download.");
-                return;
+                return false;
             }
 
             // Validate selected items against playlist size
@@ -302,6 +332,8 @@ class Program
             var failed = new List<(int Index, string Title, string Error)>();
             int padWidth = entries.Count.ToString().Length;
             bool isFirst = true;
+            int botStreak = 0;
+            bool blocked = false;
 
             for (int i = 0; i < entries.Count; i++)
             {
@@ -339,6 +371,7 @@ class Program
                 try
                 {
                     var result = await DownloadVideoAsync(entry.Url, playlistDir);
+                    botStreak = 0;
                     if (result == DownloadResult.Skipped)
                     {
                         // MKV exists in videoId subfolder (e.g. interrupted previous run)
@@ -368,10 +401,19 @@ class Program
                 {
                     Console.WriteLine($"  Failed: {ex.Message}");
                     failed.Add((itemNumber, entry.Title, ex.Message));
+                    // Only bot blocks count toward the stop; age gates and one-off failures just get logged
+                    botStreak = ex.Message.Contains("not a bot", StringComparison.OrdinalIgnoreCase) ? botStreak + 1 : 0;
                     // Clean up partial videoId subfolder on failure
                     string videoSubDir = Path.Combine(playlistDir, entry.VideoId);
                     if (Directory.Exists(videoSubDir))
                         Directory.Delete(videoSubDir, true);
+
+                    if (maxBotFailures > 0 && botStreak >= maxBotFailures)
+                    {
+                        Console.WriteLine($"Stopping: {botStreak} consecutive 'not a bot' blocks. Refresh cookies and wait before retrying.");
+                        blocked = true;
+                        break;
+                    }
                 }
             }
 
@@ -394,6 +436,8 @@ class Program
                 Console.WriteLine();
                 Console.WriteLine($"Retry with: --items {string.Join(",", failed.Select(f => f.Index))}");
             }
+
+            return blocked;
         }
 
         private string ExtractPlaylistId(string url)
@@ -427,17 +471,20 @@ class Program
                     FileName = "yt-dlp",
                     Arguments = $"{_cookieArgs}-F \"{url}\"",
                     RedirectStandardOutput = true,
+                    RedirectStandardError = true,
                     UseShellExecute = false,
                     CreateNoWindow = true
                 }
             };
 
             process.Start();
+            var stderrTask = process.StandardError.ReadToEndAsync();
             string output = await process.StandardOutput.ReadToEndAsync();
+            string stderr = (await stderrTask).Trim();
             await process.WaitForExitAsync();
 
             if (process.ExitCode != 0)
-                throw new Exception("Failed to fetch video formats");
+                throw new Exception($"Failed to fetch video formats: {stderr}");
 
             return ParseFormats(output);
         }

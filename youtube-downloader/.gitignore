@@ -2,3 +2,6 @@ bin/
 obj/
 downloads/
 formats.txt
+cookies.txt
+*cookies*.txt
+prolonged/jobs/
