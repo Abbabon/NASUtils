@@ -1,5 +1,6 @@
 #!/bin/bash
 # Prolonged playlist download: a LaunchAgent runs one small batch every few hours until the playlist is complete.
+# Jobs with TYPE=podcast (FEED, OUTPUT) run ../../podcast-downloader instead of yt-dlp; same launcher, guard, status.
 # Usage: prolonged.sh {install|uninstall|status|missing|check|run [--force]} <job>   (job = jobs/<job>.conf)
 # Progress comes from the output folder (files "NNN. title [id].mkv"); no state file besides status/<job>.json.
 set -u
@@ -16,10 +17,11 @@ CONF="$HERE/jobs/$job.conf"
 [ -f "$CONF" ] || { echo "no config: $CONF"; exit 1; }
 LABEL="com.abbabon.nasutils.ytdl.$job"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
-BATCH=20 DELAY=100 INTERVAL_HOURS=4 MAX_BOT_FAILURES=3
+BATCH=20 DELAY=100 INTERVAL_HOURS=4 MAX_BOT_FAILURES=3 TYPE=video PAUSE=3
 . "$CONF"
 COOKIES="${COOKIES/#\~/$HOME}"; OUTPUT="${OUTPUT%/}"
-PLID="$(echo "$URL" | sed -n 's/.*[?&]list=\([^&]*\).*/\1/p')"
+PODCAST="$HERE/../../podcast-downloader/podcast_downloader.py"
+PLID="$(echo "${URL:-}" | sed -n 's/.*[?&]list=\([^&]*\).*/\1/p')"
 STATUS="$DATA/status/$job.json"
 LOGDIR="$DATA/logs/$job"
 
@@ -54,11 +56,14 @@ fail() { log "ERROR: $2"; write_status "$1" 0 0 -1; return 1; }
 # guard: fail closed unless OUTPUT is listable and writable and the missing count is plausible.
 # Sets TOTAL, M, n. On failure writes status and returns 1 (caller must not download).
 guard() {
+  # podcast: create the show's Audio dir, but only if its parent exists (so an unmounted NAS never gets a local copy)
+  [ "$TYPE" = podcast ] && [ ! -d "$OUTPUT" ] && [ -d "$(dirname "$OUTPUT")" ] && tmo 30 mkdir "$OUTPUT"
   [ -d "$OUTPUT" ] || { fail not-mounted "output not available (NAS not mounted?): $OUTPUT"; return 1; }
   local e t="$OUTPUT/.ytdl-probe.$$"
   e=$(tmo 30 ls "$OUTPUT" 2>&1 >/dev/null) || { fail no-access "cannot list $OUTPUT (${e:-timed out}). Grant Full Disk Access to $LAUNCHER"; return 1; }
   e=$(tmo 30 touch "$t" 2>&1) || { fail no-access "cannot write to $OUTPUT (${e:-timed out}). Grant Full Disk Access to $LAUNCHER"; return 1; }
   rm -f "$t"
+  if [ "$TYPE" = podcast ]; then TOTAL=0; n=0; log "access ok: $OUTPUT listable+writable"; return 0; fi
   load_missing || { fail error "could not read playlist or output dir"; return 1; }
   n=$(echo "$M" | grep -c .)
   local prev; prev=$(sed -n 's/.*"missing":\([0-9]*\).*/\1/p' "$STATUS" 2>/dev/null)
@@ -80,15 +85,19 @@ check) # read-only: run the probe through the launcher as a one-off launchd job
   grep -q '^RESULT ok' "$out" ;;
 
 missing)
+  [ "$TYPE" = podcast ] && { python3 -I "$PODCAST" "$FEED" "$OUTPUT" --dry-run | tail -1; exit; }
   load_missing || { echo "could not read playlist"; exit 1; }
   echo "total=$TOTAL missing=$(echo "$M" | grep -c .)"; echo "$M" | paste -sd, - ;;
 
 install)
   mkdir -p "$DATA" "$LOGDIR" "$(dirname "$PLIST")"
-  dotnet build "$SRC/YoutubeDownloader.csproj" -c Release -o "$DATA/bin" -v q --nologo | tail -3
+  [ "$TYPE" = podcast ] || dotnet build "$SRC/YoutubeDownloader.csproj" -c Release -o "$DATA/bin" -v q --nologo | tail -3
   # build launcher; only replace if changed so an existing Full Disk Access grant stays valid
+  # (podcast jobs never rebuild an existing launcher: same binary, same grant)
+  if [ "$TYPE" != podcast ] || [ ! -x "$LAUNCHER" ]; then
   cc -O1 -DSCRIPT="\"$HERE/prolonged.sh\"" -o "$LAUNCHER.new" "$HERE/launcher.c" || exit 1
   cmp -s "$LAUNCHER.new" "$LAUNCHER" && rm "$LAUNCHER.new" || mv "$LAUNCHER.new" "$LAUNCHER"
+  fi
   echo "launcher: $LAUNCHER  (grant Full Disk Access to exactly this path)"
   "$0" check "$job" || { echo "access check failed; NOT scheduling. Fix access, then re-run install."; exit 1; }
   cat > "$PLIST" <<PL
@@ -125,7 +134,7 @@ run)
   exec > >(tee -a "$LOG") 2>&1
   ls -t "$LOGDIR"/run-*.log 2>/dev/null | tail -n +61 | xargs rm -f   # keep the last 60 logs
 
-  [ -f "$COOKIES" ] || { log "waiting for cookies: $COOKIES not found"; write_status waiting-cookies; exit 0; }
+  [ "$TYPE" = podcast ] || [ -f "$COOKIES" ] || { log "waiting for cookies: $COOKIES not found"; write_status waiting-cookies; exit 0; }
   last=$(sed -n 's/.*"last_run_epoch":\([0-9]*\).*/\1/p' "$STATUS" 2>/dev/null)
   if [ "$force" != "--force" ] && [ -n "$last" ] && [ $(( $(date +%s) - last )) -lt $((INTERVAL_HOURS * 3600 - 600)) ] \
      && grep -q '"result":"\(ok\|blocked\|error\)"' "$STATUS"; then
@@ -133,6 +142,14 @@ run)
   fi
 
   guard || exit 0
+  if [ "$TYPE" = podcast ]; then
+    python3 -I "$PODCAST" "$FEED" "$OUTPUT" --pause "$PAUSE"; rc=$?
+    sleep 1; s=$(grep -h '^SUMMARY ' "$LOG" | tail -1)   # also in $LOG via tee
+    TOTAL=$(echo "$s" | sed -n 's/.*total=\([0-9]*\).*/\1/p'); d=$(echo "$s" | sed -n 's/.*downloaded=\([0-9]*\).*/\1/p')
+    f=$(echo "$s" | sed -n 's/.*failed=\([0-9]*\).*/\1/p'); m=$(echo "$s" | sed -n 's/.*missing=\([0-9]*\).*/\1/p')
+    res=ok; [ $rc -ne 0 ] && res=error
+    write_status "$res" "${d:-0}" "${f:-0}" "${m:--1}"; exit 0   # daily job: never unloads itself
+  fi
   if [ "$n" -eq 0 ]; then
     log "complete: all $TOTAL items present"; write_status complete 0 0 0
     launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null; exit 0

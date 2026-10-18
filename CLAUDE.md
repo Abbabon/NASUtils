@@ -73,6 +73,10 @@ The project is organized into focused sub-projects, each in its own directory:
 ### CBZ Creator (`cbz-creator/` directory)
 - **cbzify.py** - Recursively converts image directories into CBZ comic book archives
 
+### Podcast Downloader (`podcast-downloader/` directory)
+- **podcast_downloader.py** - Downloads a podcast RSS feed's back catalogue as `YYYY-MM-DD - Title.mp3` (idempotent, `.part` then rename, retries, `--dry-run`, saves `cover.jpg`). Stdlib only.
+- Runs headless/daily via `youtube-downloader/prolonged/` with a job config `TYPE=podcast` (same FDA launcher and mount guard). See its README.
+
 ### Playlist Cleanup (`playlist-cleanup/` directory)
 - **playlist_cleanup.py** - Cleans playlist files by removing path prefixes with backup creation
 
@@ -174,6 +178,10 @@ python roms/organizeRoms.py /mixed/rom/directory
 
 # Extract all ZIP files recursively
 python roms/unzipRoms.py /rom/directory
+
+# Download a podcast feed (dry-run first), or schedule it daily headless
+python podcast-downloader/podcast_downloader.py https://feeds.megaphone.fm/harmontown /path/to/Audio --dry-run
+youtube-downloader/prolonged/prolonged.sh install harmontown-audio   # job config with TYPE=podcast
 
 # Start changes detector service
 cd changes-detector && docker compose up -d
