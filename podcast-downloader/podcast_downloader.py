@@ -10,6 +10,7 @@ import logging
 import re
 import sys
 import time
+import unicodedata
 import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -106,8 +107,10 @@ def main():
     items, cover = parse_feed(retry(lambda: open_url(a.feed).read(), "feed"))
     planned = plan(items)
     a.dest.mkdir(parents=True, exist_ok=True) if not a.dry_run else None
-    have = {p.name for p in a.dest.iterdir()} if a.dest.is_dir() else set()
-    todo = [(n, u) for n, u in planned if n not in have]
+    # SMB shares return decomposed (NFD) names, so compare normalized forms
+    nfc = lambda s: unicodedata.normalize("NFC", s)
+    have = {nfc(p.name) for p in a.dest.iterdir()} if a.dest.is_dir() else set()
+    todo = [(n, u) for n, u in planned if nfc(n) not in have]
     log.info("feed has %d episodes, %d missing", len(planned), len(todo))
     if a.dry_run:
         for n, _ in todo:
