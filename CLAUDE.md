@@ -376,7 +376,7 @@ The YouTube downloader (`youtube-downloader/Program.cs`) provides:
 - **Prolonged Jobs**: `youtube-downloader/prolonged/prolonged.sh` runs a playlist in batches via a LaunchAgent (install/uninstall/status/missing); see `youtube-downloader/prolonged/README.md`
 - **Smart Quality Selection**: Downloads highest quality video format available
 - **Multi-Language Audio**: Automatically detects and downloads best audio track for each unique language with proper track titles
-- **Popular Subtitles**: Downloads subtitles for 12 popular languages (en,es,fr,de,it,pt,ru,zh,ja,ko,ar,hi) to avoid hundreds of auto-generated tracks
+- **Popular Subtitles**: Downloads English subtitles only (`en`, manual or auto-generated); extra languages trigger HTTP 429 throttling
 - **Rate Limiting**: Built-in delays and retry logic to handle YouTube's rate limiting (HTTP 429 errors)
 - **Duplicate Prevention**: Skips downloads if video already exists in output directory
 - **Organized Output**: Creates unique folders per video using video ID extraction

@@ -32,7 +32,7 @@ class Program
 
     private static readonly string[] PopularSubtitleLanguages = 
     {
-        "en", "es", "fr", "de", "it", "pt", "ru", "zh", "ja", "ko", "ar", "hi"
+        "en"
     };
 
     static async Task<int> Main(string[] args)
