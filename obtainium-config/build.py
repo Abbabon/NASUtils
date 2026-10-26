@@ -103,6 +103,19 @@ def bump_base(lock, token=None):
         log.info("base already at latest (%s)", latest)
         return False
 
+    # Upstream can drop a variant (v8 removed dual-screen); keep the pin rather than write a lock that 404s.
+    try:
+        rel_url = f"https://api.github.com/repos/{lock['repo']}/releases/tags/{latest}"
+        with urllib.request.urlopen(urllib.request.Request(rel_url, headers=headers), timeout=30) as resp:
+            rel = json.loads(resp.read())
+    except (urllib.error.HTTPError, urllib.error.URLError) as exc:
+        raise SystemExit(f"Could not query upstream release {latest}: {exc}")
+    have = {a["name"] for a in rel["assets"]}
+    missing = [t.format(version=latest) for t in lock["assets"].values() if t.format(version=latest) not in have]
+    if missing:
+        log.warning("upstream %s lacks %s; keeping %s", latest, missing, lock["version"])
+        return False
+
     log.info("bumping base %s -> %s", lock["version"], latest)
     path = ROOT / "base.lock.json"
     raw = load_json(path)

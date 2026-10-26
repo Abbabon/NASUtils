@@ -2,14 +2,14 @@
   "_comment": [
     "One entry per physical device. 'base' selects which upstream pack variant to start from",
     "(see base.lock.json assets). Overlay apps/overrides/excludes opt in by profile name.",
-    "Note: upstream's 'dual-screen' pack is a strict superset of 'standard' (+4 apps as of v7.13.0),",
-    "not a separately curated dual-screen build."
+    "Note: upstream dropped its 'dual-screen' pack in v8.0.0 (forks merged / got their own IDs);",
+    "the standard pack is the only one."
   ],
 
   "profiles": {
     "thor": {
       "device": "AYN Thor",
-      "base": "dual-screen",
+      "base": "standard",
       "notes": "Dual-screen handheld. Gets Wayfinder + ThorTune; OdinTools excluded."
     },
     "odin2": {

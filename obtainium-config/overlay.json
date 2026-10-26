@@ -118,6 +118,29 @@
       }
     },
     {
+      "slug": "droiddeck-skip-ci-releases",
+      "profiles": ["*"],
+      "match": { "id": "com.droiddeck.launcher" },
+      "reason": "Droid-Deck/DroidDeck publishes CI toolchain releases (e.g. 'ci-debian-bullseye-r1', which ships only .tar.zst) as the newest non-prerelease, so Obtainium resolves it and finds no APK. filterReleaseTitlesByRegEx is an inclusion filter on the title (falling back to the tag), so this keeps 'DroidDeck 0.6.0'-style titles. Releases also carry -antutu/-ludashi/-pubg variant APKs, so apkFilterRegEx keeps only the plain one.",
+      "patch": {
+        "additionalSettings": {
+          "filterReleaseTitlesByRegEx": "^DroidDeck \\d",
+          "apkFilterRegEx": "^DroidDeck-[0-9.]+\\.apk$"
+        }
+      }
+    },
+    {
+      "slug": "jarngreipr-rc-apk",
+      "profiles": ["*"],
+      "match": { "id": "jr.brian.home" },
+      "reason": "Upstream apkFilterRegEx 'jarngreipr-[\\d.]+\\.apk$' stopped matching when releases became 'v3.1.2-rc' shipping jarngreipr-3.1.2-rc.apk (+ a -rch variant). Allow an optional '-rc' suffix, anchored so the -rch variant stays excluded.",
+      "patch": {
+        "additionalSettings": {
+          "apkFilterRegEx": "^jarngreipr-[0-9.]+(-rc)?\\.apk$"
+        }
+      }
+    },
+    {
       "slug": "ludashi-vanilla-apk",
       "profiles": ["*"],
       "match": { "id": "com.winlator.ludashi" },
