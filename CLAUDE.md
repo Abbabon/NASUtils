@@ -77,6 +77,12 @@ The project is organized into focused sub-projects, each in its own directory:
 - **podcast_downloader.py** - Downloads a podcast RSS feed's back catalogue as `YYYY-MM-DD - Title.mp3` (idempotent, `.part` then rename, retries, `--dry-run`, saves `cover.jpg`). Stdlib only.
 - Runs headless/daily via `youtube-downloader/prolonged/` with a job config `TYPE=podcast` (same FDA launcher and mount guard). See its README.
 
+### Podcast Transcriber (`podcast-transcriber/` directory)
+- **podcast_transcriber.py** - Transcribes a podcast RSS feed with ElevenLabs Scribe (`scribe_v2`, Hebrew, diarized) into one Markdown note per episode with speaker turns and `[m:ss]` stamps. Raw API JSON is stored per episode (source of truth; done = raw exists, so re-runs only bill new episodes). `--season N`, `--keyterms FILE`, `--dry-run`, `--rerender` (no API calls). Optional `--polish` runs headless `claude -p` to apply exact-substring fixes and map speaker ids to names (`--context FILE` adds show-specific facts). Key: `ELEVENLABS_API_KEY` from env or root `.env`. Stdlib only.
+- **test_podcast_transcriber.py** - Self-check of rendering, edits and chunking (`python test_podcast_transcriber.py`)
+- **README.md** - Usage, output layout, `speakers.json` format, polish behaviour, cost notes
+- Show-specific inputs (keyterms, context, speakers, outputs) live outside the repo.
+
 ### Playlist Cleanup (`playlist-cleanup/` directory)
 - **playlist_cleanup.py** - Cleans playlist files by removing path prefixes with backup creation
 
@@ -182,6 +188,10 @@ python roms/unzipRoms.py /rom/directory
 # Download a podcast feed (dry-run first), or schedule it daily headless
 python podcast-downloader/podcast_downloader.py https://feeds.megaphone.fm/harmontown /path/to/Audio --dry-run
 youtube-downloader/prolonged/prolonged.sh install harmontown-audio   # job config with TYPE=podcast
+
+# Transcribe a podcast feed (dry-run first; keyterms/context files are kept outside the repo)
+python podcast-transcriber/podcast_transcriber.py FEED_URL OUT_DIR --season 1 --dry-run
+python podcast-transcriber/podcast_transcriber.py FEED_URL OUT_DIR --season 1 --keyterms KEYTERMS.md --context CONTEXT.md --polish
 
 # Start changes detector service
 cd changes-detector && docker compose up -d
