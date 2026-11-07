@@ -2,7 +2,7 @@
 """Transcribe a podcast RSS feed with ElevenLabs Scribe (Hebrew, diarized) into one Markdown note per episode.
 
 Usage: podcast_transcriber.py FEED_URL OUT_DIR [--dry-run] [--only TEXT] [--limit N] [--shortest]
-                              [--speakers N] [--keyterms FILE] [--season N] [--guests REGEX] [--context FILE] [--polish] [--rerender] [--log-file PATH]
+                              [--speakers N] [--keyterms FILE] [--season N] [--guests REGEX] [--guest-speakers N] [--context FILE] [--polish] [--rerender] [--log-file PATH]
 Layout: OUT_DIR/<YYYY-MM-DD - Title>.md, OUT_DIR/raw/<same>.json (raw API response), OUT_DIR/speakers.json.
 speakers.json maps labels to names: {"*": {"speaker_0": "Host"}, "<note stem>": {"speaker_1": "Guest"}}.
 Done = raw JSON exists (skipped). --rerender rewrites notes from raw JSON, no API calls.
@@ -242,6 +242,7 @@ def main():
     ap.add_argument("--limit", type=int, help="transcribe at most N episodes (oldest first)")
     ap.add_argument("--shortest", action="store_true", help="pick shortest episodes first (by feed duration)")
     ap.add_argument("--speakers", type=int, default=2, help="max speakers (default 2; 0 = auto). Conference episodes always auto")
+    ap.add_argument("--guest-speakers", type=int, default=0, help="speaker cap for --guests episodes (default 0 = auto; e.g. 3 for host+host+guest)")
     ap.add_argument("--guests", default="Conference", help="regex on the title: matching episodes have guests, so speaker count is auto (default 'Conference')")
     ap.add_argument("--keyterms", type=Path, help="file with one term per line (<=5 words each); +20%% cost")
     ap.add_argument("--season", help="only episodes with this itunes:season (e.g. 1)")
@@ -283,7 +284,7 @@ def main():
         for i, e in enumerate(todo, 1):
             try:
                 log.info("[%d/%d] transcribing %s", i, len(todo), e["stem"])
-                cap = 0 if re.search(a.guests, e["title"]) else a.speakers
+                cap = a.guest_speakers if re.search(a.guests, e["title"]) else a.speakers
                 raw = transcribe(key, e["url"], cap, keyterms)
                 tmp = raw_dir / f"{e['stem']}.json.part"
                 tmp.write_text(json.dumps(raw, ensure_ascii=False), "utf-8")

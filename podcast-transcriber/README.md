@@ -13,7 +13,7 @@ python test_podcast_transcriber.py                                  # self-check
 
 Options: `--only TEXT`, `--season N` (itunes:season), `--limit N`, `--shortest`, `--speakers N` (default 2,
 0 = auto), `--guests REGEX` (titles matching it have guests and always use auto speakers; default `Conference`. The speaker cap is wrong for episodes with a third voice, so match your guest-episode titles), `--keyterms FILE`,
-`--context FILE`, `--polish`, `--rerender`, `--log-file`.
+`--guest-speakers N` (speaker cap for `--guests` titles; default 0 = auto, use 3 when auto merges voices), `--context FILE`, `--polish`, `--rerender`, `--log-file`.
 
 Resuming later is just re-running the same command with another `--season` (or none): episodes whose raw
 JSON exists are skipped, so only new ones are billed.
