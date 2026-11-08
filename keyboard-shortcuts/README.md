@@ -6,8 +6,10 @@ Custom macOS keyboard shortcuts, implemented with [Hammerspoon](https://www.hamm
 
 | Hotkey | Action |
 | --- | --- |
-| `ctrl+alt+cmd+Right` | Move the focused window to the next desktop (Space) and follow it. Does nothing on the last desktop or for full-screen windows. |
-| `ctrl+alt+cmd+Left` | Same, to the previous desktop. Does nothing on the first desktop. |
+| `ctrl+shift+cmd+Right` | Move the focused window to the next desktop (Space) and follow it. Does nothing on the last desktop or for full-screen windows. |
+| `ctrl+shift+cmd+Left` | Same, to the previous desktop. Does nothing on the first desktop. |
+
+The combo is `ctrl+shift+cmd` rather than `ctrl+alt+cmd` to avoid Rectangle's `ctrl+opt+cmd+arrows` (next/previous display).
 
 ## Install
 

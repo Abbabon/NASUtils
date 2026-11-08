@@ -84,7 +84,7 @@ The project is organized into focused sub-projects, each in its own directory:
 - Show-specific inputs (keyterms, context, speakers, outputs) live outside the repo.
 
 ### Keyboard Shortcuts (`keyboard-shortcuts/` directory)
-- **shortcuts.lua** - Hammerspoon config module with custom macOS shortcuts, loaded from `~/.hammerspoon/init.lua` via `dofile`. `ctrl+alt+cmd+Right` / `Left` move the focused window to the next / previous Space and follow it, doing nothing at either end (title-bar drag plus the system `ctrl+Right`/`ctrl+Left` shortcut, since `hs.spaces.moveWindowToSpace` is broken on macOS 14.5+)
+- **shortcuts.lua** - Hammerspoon config module with custom macOS shortcuts, loaded from `~/.hammerspoon/init.lua` via `dofile`. `ctrl+shift+cmd+Right` / `Left` move the focused window to the next / previous Space and follow it, doing nothing at either end (title-bar drag plus the system `ctrl+Right`/`ctrl+Left` shortcut, since `hs.spaces.moveWindowToSpace` is broken on macOS 14.5+)
 - **README.md** - Install, prerequisites (Accessibility permission, Mission Control "Move left/right a space" enabled), and how to add shortcuts
 
 ### Playlist Cleanup (`playlist-cleanup/` directory)

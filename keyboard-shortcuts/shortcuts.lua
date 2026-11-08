@@ -1,7 +1,7 @@
 -- Custom macOS keyboard shortcuts for Hammerspoon.
 -- Load from ~/.hammerspoon/init.lua:  dofile("/path/to/NASUtils/keyboard-shortcuts/shortcuts.lua")
 
-local mods = { "ctrl", "alt", "cmd" }
+local mods = { "ctrl", "shift", "cmd" }
 
 -- Move focused window one Space in `dir` (1 = right, -1 = left) and follow it.
 -- hs.spaces.moveWindowToSpace is broken since macOS 14.5, so: hold the title bar,
@@ -24,7 +24,7 @@ local function moveWindowBySpace(dir)
   local ev = hs.eventtap.event
   hs.mouse.absolutePosition(grab) -- the press must happen under the real cursor
   hs.timer.usleep(100000)
-  -- empty modifiers: the hotkey's ctrl+alt+cmd may still be physically held
+  -- empty modifiers: the hotkey's ctrl+shift+cmd may still be physically held
   ev.newMouseEvent(ev.types.leftMouseDown, grab, {}):post()
   hs.timer.usleep(100000)
   -- a plain press doesn't pick the window up; the real cursor has to move while held
