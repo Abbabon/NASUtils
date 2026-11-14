@@ -30,7 +30,7 @@ That's four entries to maintain instead of sixty.
 | `overlay.json` | Local additions, patches, and excludes — the only file you normally edit |
 | `profiles.json` | One entry per physical device: which base variant it starts from |
 | `build.py` | Base + overlay → `dist/<profile>.json` |
-| `validate.py` | Structural checks + live GitHub release resolution |
+| `validate.py` | Structural checks + live GitHub / Forgejo release resolution |
 | `dist/` | Generated, committed — this is what you import on the device |
 | `.cache/` | Downloaded upstream release assets, gitignored |
 
@@ -58,6 +58,10 @@ Live checks issue exactly one request per app — `GET /repos/{owner}/{repo}/rel
 against public endpoints, for repos already named in the pack. The token is purely a rate-limit
 lift: unauthenticated GitHub allows 60 requests/hour per IP and a pack holds ~60 apps, while any
 authenticated request gets 5,000/hour.
+
+Apps on Forgejo (`overrideSource: "Codeberg"`, which Obtainium uses for codeberg.org and for any
+self-hosted Forgejo/Gitea host) are checked through that host's `/api/v1/repos/{owner}/{repo}/releases`,
+unauthenticated; the GitHub token is never sent anywhere but api.github.com.
 
 **The token needs no scopes.** Create a classic PAT with zero boxes checked, or a fine-grained PAT
 with "Public Repositories (read-only)". Do not reuse a `gh auth token` — those carry `repo`, which
