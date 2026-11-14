@@ -42,8 +42,14 @@ active `gh` account.
 The project is organized into focused sub-projects, each in its own directory:
 
 ### File Organizer (`file-organizer/` directory)
-- **filesOrganizer.py** - Daemon process that continuously organizes files by date into YYYY/MM directory structure
-- **Dockerfile** - Docker configuration for containerized file organization
+Stdlib only. The container runs `service.py`: the sort loop plus a dashboard on port 8310.
+- **filesOrganizer.py** - Sort logic (`organize_files_by_date` + `Rules`): moves input files into `YYYY/MM` by mtime, skips `@` paths, dot-files (partial uploads) and files changed in the last `min_age_seconds` (ctime), never overwrites (`name (1).ext`). Still runnable standalone as the old 60 s daemon
+- **library.py** - SQLite `Store` (arrival times, run history, trash index), cached `Library` scan of the archive (skips `@`/`#`/`.` dirs; arrival = recorded time, else ctime), `Trash` (delete moves to `TRASH_DIR` outside the archive, restore, purge), `safe_join` path guard
+- **service.py** - Worker thread (pause, interval, Sort now) + `ThreadingHTTPServer` JSON API, Range-capable `/media/`, Synology `@eaDir` `/thumb/`, optional basic auth (`DASHBOARD_PASSWORD`), POSTs require `X-Requested-With: organizer`
+- **static/index.html** - Dashboard (vanilla JS, no CDN): Largest / New grids, preview with delete + undo, Trash, Activity, Settings
+- **test_service.py** - Self-check: sorter rules + full HTTP round trip on a temp tree (`python test_service.py`)
+- **Dockerfile** / **docker-compose.yml** - Mounts input, archive, `/trash`, `/config`; healthcheck on `/healthz`
+- **README.md** - Dashboard, sorting rules, delete vs Backblaze, deploy
 
 ### YouTube Downloader (`youtube-downloader/` directory)
 - **Program.cs** - C# .NET 8 console application for downloading YouTube videos with multi-language audio and subtitles
@@ -143,6 +149,10 @@ Examples:
 ```sh
 # File organization (runs as daemon)
 python file-organizer/filesOrganizer.py /input_directory /output_parent_directory
+
+# File organizer + dashboard (what the container runs), and its self-check
+INPUT_DIR=./in OUTPUT_DIR=./archive TRASH_DIR=./trash CONFIG_DIR=./config python file-organizer/service.py
+cd file-organizer && python test_service.py
 
 # Create CBZ archives recursively
 python cbz-creator/cbzify.py /path/to/comic/directories
@@ -253,10 +263,10 @@ The `organizeRoms.py` uses a mapping of console systems to file extensions:
 ### Docker Integration
 The file organizer, YouTube downloader, and changes detector have Docker support:
 
-**File Organizer** (`file-organizer/filesOrganizer.py`):
-- Python 3.9-slim base image
-- Volume mounts for input/output directories
-- Continuous monitoring with 60-second intervals
+**File Organizer** (`file-organizer/service.py`):
+- Python 3.12-slim base image
+- Volume mounts for input, archive, trash and config directories
+- Sorts every 60 seconds by default (configurable from the dashboard on port 8310)
 
 **YouTube Downloader** (`youtube-downloader/Program.cs`):
 - .NET 8 runtime base image
@@ -315,7 +325,10 @@ cd /volume1/docker/<project-name>
 ### File-Organizer Deployment
 The file-organizer has a `docker-compose.yml` with env var defaults:
 - **Input**: `/volume1/Assets/Photos/Photosync` (recursive scan of subfolders)
-- **Output**: `/volume1/Assets/Photos/Archive` (organized into `YYYY/MM` structure)
+- **Output**: `/volume1/Assets/Photos/Archive` (organized into `YYYY/MM` structure; backed up to Backblaze, which has the daily upload cap)
+- **Trash**: `/volume1/docker/file-organizer/trash` (must stay outside the archive and out of the Backblaze task)
+- **Config**: `/volume1/docker/file-organizer/config`
+- **Dashboard**: port 8310; set `DASHBOARD_PASSWORD` in `.env`
 
 ```sh
 # Deploy on NAS

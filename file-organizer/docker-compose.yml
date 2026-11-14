@@ -4,11 +4,18 @@ services:
     image: file-organizer:latest
     container_name: file-organizer
     restart: unless-stopped
+    ports:
+      - "${DASHBOARD_PORT:-8310}:8310"
     volumes:
       - ${INPUT_DIRECTORY:-/volume1/Assets/Photos/Photosync}:/input_directory
       - ${OUTPUT_DIRECTORY:-/volume1/Assets/Photos/Archive}:/output_parent_directory
+      # Deleted files land here. Keep it OUTSIDE the archive and out of the Backblaze task.
+      - ${TRASH_DIRECTORY:-/volume1/docker/file-organizer/trash}:/trash
+      # settings.json + organizer.db (arrival times, run history, trash index)
+      - ${CONFIG_DIRECTORY:-/volume1/docker/file-organizer/config}:/config
     environment:
       - TZ=${TZ}
+      - DASHBOARD_PASSWORD=${DASHBOARD_PASSWORD:-}
     logging:
       driver: "json-file"
       options:

@@ -17,7 +17,7 @@ The repository is organized into specialized sub-projects:
 
 ## File Organizer (`file-organizer/`)
 
-Daemon process that continuously organizes files by date into YYYY/MM directory structure.
+Daemon process that continuously organizes files by date into YYYY/MM directory structure, with a web dashboard (port 8310) for the largest and newest files, preview, delete-to-trash, and pausing/configuring the sorter. See [file-organizer/README.md](file-organizer/README.md).
 
 ### Docker Commands
 
@@ -170,24 +170,28 @@ Services are deployed to a **Synology DS423** running DSM 7.x via **SSH + CLI** 
 
 ### Deploying file-organizer
 
-The file-organizer monitors `/volume1/Assets/Photos/Photosync` (including subfolders) and organizes files by date into `/volume1/Assets/Photos/Archive/YYYY/MM/`.
+The file-organizer monitors `/volume1/Assets/Photos/Photosync` (including subfolders) and organizes files by date into `/volume1/Assets/Photos/Archive/YYYY/MM/`. It also serves a dashboard on port 8310 (largest/new files, preview, delete to trash, pause/configure the sorter).
 
 ```sh
 # Copy project files to NAS (use -O flag for Synology SCP compatibility)
-scp -O file-organizer/docker-compose.yml file-organizer/.env.example \
-  file-organizer/Dockerfile file-organizer/filesOrganizer.py \
+scp -O -r file-organizer/docker-compose.yml file-organizer/.env.example file-organizer/Dockerfile \
+  file-organizer/filesOrganizer.py file-organizer/library.py file-organizer/service.py \
+  file-organizer/static \
   $NAS_USER@$NAS_IP:/volume1/docker/file-organizer/
 
 # SSH into NAS and deploy
 ssh $NAS_USER@$NAS_IP
 cd /volume1/docker/file-organizer
 
-# Optionally create .env from .env.example to override default paths
-cp .env.example .env
+# Create .env and set DASHBOARD_PASSWORD (the dashboard can delete files) and TZ
+cp -n .env.example .env
+mkdir -p trash config
 
 /usr/local/bin/docker compose up -d --build
 /usr/local/bin/docker logs file-organizer
 ```
+
+See `file-organizer/README.md` for the dashboard, trash and Backblaze notes.
 
 Other services (changes-detector, immich) follow the same pattern — each has its own `docker-compose.yml`.
 

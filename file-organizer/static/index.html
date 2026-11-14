@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Photo Organizer</title>
+<script>
+  // apply the saved theme before first paint so there is no flash of the wrong colors
+  try { const t = localStorage.getItem("theme"); if (t && t !== "auto") document.documentElement.dataset.theme = t; } catch (_) {}
+</script>
+<style>
+:root {
+  --bg: #f6f5f2; --surface: #ffffff; --surface-2: #efede8; --border: #e2dfd8;
+  --text: #1d1c1a; --muted: #6b6860; --accent: #2f6f5e; --accent-ink: #ffffff;
+  --warn: #b26a00; --danger: #b3261e; --danger-bg: #fbe9e7; --ok: #2f7d32;
+  --bar: #9cb8ae; --bar-hot: #c98a2e; --shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04);
+  --radius: 10px; --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+/* Theme: no data-theme = follow the system; otherwise light / dark / dracula from the picker */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --bg: #141413; --surface: #1d1d1b; --surface-2: #262623; --border: #33322e;
+    --text: #ecebe6; --muted: #9c9a92; --accent: #6fb7a1; --accent-ink: #0d1f1a;
+    --warn: #e0a24a; --danger: #f28b82; --danger-bg: #3a1f1d; --ok: #81c784;
+    --bar: #4c7a6d; --bar-hot: #c98a2e; --shadow: none; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141413; --surface: #1d1d1b; --surface-2: #262623; --border: #33322e;
+  --text: #ecebe6; --muted: #9c9a92; --accent: #6fb7a1; --accent-ink: #0d1f1a;
+  --warn: #e0a24a; --danger: #f28b82; --danger-bg: #3a1f1d; --ok: #81c784;
+  --bar: #4c7a6d; --bar-hot: #c98a2e; --shadow: none; color-scheme: dark;
+}
+/* Dracula: draculatheme.com palette */
+:root[data-theme="dracula"] {
+  --bg: #21222c; --surface: #282a36; --surface-2: #343746; --border: #44475a;
+  --text: #f8f8f2; --muted: #a0a8cd; --accent: #bd93f9; --accent-ink: #282a36;
+  --warn: #ffb86c; --danger: #ff5555; --danger-bg: #3d2a36; --ok: #50fa7b;
+  --bar: #6272a4; --bar-hot: #ff79c6; --shadow: none; color-scheme: dark;
+}
+:root[data-theme="dracula"] .pill.sorting i { background: #8be9fd; }
+:root[data-theme="dracula"] a { color: #8be9fd; }
+:root[data-theme="dracula"] .pv .btns a { color: var(--text); }
+:root[data-theme="dracula"] .log .ERROR { color: #ff5555; }
+:root[data-theme="dracula"] code { color: #f1fa8c; }
+select.theme { border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 6px 8px; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+a { color: var(--accent); }
+html, body { margin: 0; background: var(--bg); color: var(--text);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; border: 1px solid var(--border); background: var(--surface);
+  border-radius: 8px; padding: 6px 12px; }
+button:hover { background: var(--surface-2); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+button.danger { color: var(--danger); border-color: var(--danger); }
+button.danger.armed { background: var(--danger); color: #fff; }
+button:disabled { opacity: .5; cursor: default; }
+.wrap { max-width: 1280px; margin: 0 auto; padding: 16px; }
+header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+header h1 { font-size: 18px; margin: 0 auto 0 0; letter-spacing: -.01em; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px;
+  background: var(--surface-2); font-size: 12px; color: var(--muted); }
+.pill i { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.pill.idle i { background: var(--ok); } .pill.sorting i { background: var(--accent); animation: pulse 1s infinite; }
+.pill.paused i { background: var(--warn); } .pill.error i { background: var(--danger); }
+@keyframes pulse { 50% { opacity: .3; } }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 12px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px; box-shadow: var(--shadow); min-width: 0; }
+.card .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+.card .value { font-size: 22px; font-weight: 600; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.card .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.meter { height: 6px; background: var(--surface-2); border-radius: 3px; margin-top: 8px; overflow: hidden; }
+.meter > div { height: 100%; background: var(--accent); }
+.meter.warn > div { background: var(--warn); } .meter.over > div { background: var(--danger); }
+.days { display: flex; align-items: flex-end; gap: 4px; height: 90px; position: relative; margin-top: 8px; }
+.days .d { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; min-width: 0; }
+.days .d > div { background: var(--bar); border-radius: 3px 3px 0 0; min-height: 1px; }
+.days .d.over > div { background: var(--bar-hot); }
+.days .d span { font-size: 10px; color: var(--muted); text-align: center; margin-top: 3px; white-space: nowrap; overflow: hidden; }
+.days .cap { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--danger); pointer-events: none; }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin: 18px 0 12px; overflow-x: auto; }
+.tabs button { border: none; background: none; border-radius: 0; padding: 8px 12px; color: var(--muted);
+  border-bottom: 2px solid transparent; white-space: nowrap; }
+.tabs button.on { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+.toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+.toolbar .grow { flex: 1; } .toolbar .note { color: var(--muted); font-size: 13px; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.seg button { border: none; border-radius: 0; padding: 5px 10px; background: var(--surface); }
+.seg button.on { background: var(--surface-2); font-weight: 600; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.tile { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  overflow: hidden; cursor: pointer; display: flex; flex-direction: column; min-width: 0; }
+.tile:hover { border-color: var(--accent); }
+.thumb { aspect-ratio: 1; background: var(--surface-2); position: relative; display: grid; place-items: center; overflow: hidden; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb .ph { color: var(--muted); font: 600 13px var(--mono); }
+.thumb .badge { position: absolute; left: 6px; top: 6px; background: rgba(0,0,0,.6); color: #fff;
+  font-size: 11px; padding: 1px 6px; border-radius: 4px; }
+.thumb .rank { position: absolute; right: 6px; top: 6px; background: rgba(0,0,0,.6); color: #fff;
+  font-size: 11px; padding: 1px 6px; border-radius: 4px; font-variant-numeric: tabular-nums; }
+.meta { padding: 8px 10px; }
+.meta .n { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.meta .s { color: var(--muted); font-size: 12px; display: flex; justify-content: space-between; gap: 6px; }
+.meta .s b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+.more { display: block; margin: 16px auto; }
+.empty { color: var(--muted); padding: 40px 0; text-align: center; }
+table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+th { font-size: 12px; color: var(--muted); font-weight: 600; background: var(--surface-2); }
+td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+td.path { font: 12px var(--mono); word-break: break-all; }
+td.actions { white-space: nowrap; text-align: right; }
+.tablewrap { overflow-x: auto; }
+pre.log { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 10px; font: 12px/1.5 var(--mono); max-height: 360px; overflow: auto; white-space: pre-wrap; word-break: break-all; }
+.log .ERROR { color: var(--danger); } .log .WARNING { color: var(--warn); }
+form.settings { display: grid; gap: 14px; max-width: 560px; }
+form.settings label { display: grid; gap: 4px; }
+form.settings label.check { grid-template-columns: auto 1fr; align-items: start; gap: 10px; }
+form.settings small { color: var(--muted); }
+form.settings input[type=number] { width: 140px; padding: 6px 8px; border: 1px solid var(--border);
+  border-radius: 8px; background: var(--surface); }
+h2 { font-size: 15px; margin: 22px 0 8px; }
+.paths { font: 12px var(--mono); color: var(--muted); }
+.bad { color: var(--danger); }
+/* preview */
+dialog { border: none; padding: 0; background: transparent; max-width: 100vw; max-height: 100vh;
+  width: 100vw; height: 100vh; margin: 0; }
+dialog::backdrop { background: rgba(0,0,0,.85); }
+.pv { display: grid; grid-template-columns: 1fr 300px; height: 100%; }
+.pv .stage { position: relative; display: grid; place-items: center; min-height: 0; min-width: 0; padding: 16px; background: rgba(0,0,0,.92); }
+.pv .btns a { color: var(--text); text-decoration: none; }
+.pv .stage img, .pv .stage video { max-width: 100%; max-height: calc(100vh - 32px); object-fit: contain; border-radius: 4px; }
+.pv .stage .nopv { color: #ddd; text-align: center; }
+.pv .nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,.5);
+  color: #fff; border: none; width: 44px; height: 64px; font-size: 24px; border-radius: 8px; }
+.pv .nav.prev { left: 12px; } .pv .nav.next { right: 12px; }
+.pv aside { background: var(--surface); color: var(--text); padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+.pv aside .n { font-weight: 600; font-size: 16px; word-break: break-all; }
+.pv dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px; }
+.pv dt { color: var(--muted); } .pv dd { margin: 0; word-break: break-all; }
+.pv .btns { display: grid; gap: 8px; margin-top: auto; }
+.pv .close { position: absolute; top: 12px; right: 12px; z-index: 2; }
+.pv .hint { color: var(--muted); font-size: 12px; }
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg);
+  padding: 10px 16px; border-radius: 8px; display: flex; gap: 12px; align-items: center; z-index: 50; box-shadow: var(--shadow); }
+.toast button { background: transparent; color: var(--bg); border-color: var(--bg); padding: 3px 10px; }
+@media (max-width: 760px) {
+  .pv { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+  .pv .stage img, .pv .stage video { max-height: 60vh; }
+  .pv aside { max-height: 40vh; }
+  .grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Photo Organizer</h1>
+    <span class="pill" id="pill"><i></i><span>connecting…</span></span>
+    <button id="btnRun" class="primary">Sort now</button>
+    <button id="btnPause">Pause</button>
+    <select class="theme" id="theme" aria-label="Theme">
+      <option value="auto">Auto</option><option value="light">Light</option>
+      <option value="dark">Dark</option><option value="dracula">Dracula</option>
+    </select>
+  </header>
+
+  <div class="cards">
+    <div class="card"><div class="label">Arrived today</div><div class="value" id="todayVal">–</div>
+      <div class="sub" id="todaySub"></div><div class="meter" id="todayMeter" hidden><div></div></div></div>
+    <div class="card"><div class="label">Archive</div><div class="value" id="archVal">–</div><div class="sub" id="archSub"></div></div>
+    <div class="card"><div class="label">Last sort</div><div class="value" id="runVal">–</div><div class="sub" id="runSub"></div></div>
+    <div class="card"><div class="label">Trash</div><div class="value" id="trashVal">–</div><div class="sub" id="trashSub"></div></div>
+  </div>
+  <div class="card">
+    <div class="label">Arrivals, last 14 days <span id="capNote"></span></div>
+    <div class="days" id="days"></div>
+  </div>
+
+  <nav class="tabs" id="tabs">
+    <button data-tab="largest" class="on">Largest</button>
+    <button data-tab="new">New</button>
+    <button data-tab="trash">Trash</button>
+    <button data-tab="activity">Activity</button>
+    <button data-tab="settings">Settings</button>
+  </nav>
+
+  <section id="tab-largest">
+    <div class="toolbar">
+      <span>Arrived</span>
+      <div class="seg" id="lgWindow">
+        <button data-v="1">24 h</button><button data-v="3" class="on">3 days</button><button data-v="7">7 days</button>
+        <button data-v="30">30 days</button><button data-v="">All time</button>
+      </div>
+      <div class="seg" id="lgKind"><button data-v="all" class="on">All</button><button data-v="image">Photos</button><button data-v="video">Videos</button></div>
+      <span class="grow"></span><span class="note" id="lgNote"></span>
+    </div>
+    <div class="grid" id="lgGrid"></div>
+    <button class="more" id="lgMore" hidden>Load more</button>
+  </section>
+
+  <section id="tab-new" hidden>
+    <div class="toolbar">
+      <div class="seg" id="nwWindow">
+        <button data-v="1">24 h</button><button data-v="3">3 days</button><button data-v="7" class="on">7 days</button><button data-v="30">30 days</button>
+      </div>
+      <div class="seg" id="nwKind"><button data-v="all" class="on">All</button><button data-v="image">Photos</button><button data-v="video">Videos</button></div>
+      <span class="grow"></span><span class="note" id="nwNote"></span>
+    </div>
+    <div class="grid" id="nwGrid"></div>
+    <button class="more" id="nwMore" hidden>Load more</button>
+  </section>
+
+  <section id="tab-trash" hidden>
+    <div class="toolbar">
+      <span class="note" id="trNote"></span><span class="grow"></span>
+      <button class="danger" id="btnEmpty">Empty trash</button>
+    </div>
+    <div class="tablewrap"><table><thead><tr><th>File</th><th>Original location</th><th style="text-align:right">Size</th>
+      <th>Deleted</th><th></th></tr></thead><tbody id="trBody"></tbody></table></div>
+  </section>
+
+  <section id="tab-activity" hidden>
+    <h2 style="margin-top:0">Sort runs that moved files</h2>
+    <div class="tablewrap"><table><thead><tr><th>When</th><th style="text-align:right">Moved</th><th style="text-align:right">Size</th>
+      <th style="text-align:right">Skipped</th><th style="text-align:right">Errors</th><th>Trigger</th></tr></thead><tbody id="runBody"></tbody></table></div>
+    <h2>Log</h2>
+    <pre class="log" id="log"></pre>
+  </section>
+
+  <section id="tab-settings" hidden>
+    <form class="settings" id="settingsForm">
+      <label>Sort every (seconds)<input type="number" name="interval_seconds" min="10" max="86400" required></label>
+      <label>Wait before moving a file (seconds)<input type="number" name="min_age_seconds" min="0" max="86400" required>
+        <small>Files that changed more recently than this are left in place, since they may still be uploading.</small></label>
+      <label class="check"><input type="checkbox" name="skip_hidden"><span>Skip hidden files and folders
+        <br><small>Sync apps upload into temporary dot-files (e.g. <code>.IMG_0980.MP4</code>) and rename them when done.</small></span></label>
+      <label class="check"><input type="checkbox" name="skip_at"><span>Skip paths containing “@”
+        <br><small>Synology metadata such as <code>@eaDir</code>.</small></span></label>
+      <label>Daily upload budget (GB)<input type="number" name="daily_cap_gb" min="0" step="0.1" placeholder="none">
+        <small>Your Backblaze daily cap. Only used to draw the meter and the line on the chart.</small></label>
+      <label>Empty trash items older than (days)<input type="number" name="trash_retention_days" min="0" max="3650" required>
+        <small>0 keeps deleted files until you empty the trash by hand.</small></label>
+      <div><button class="primary" type="submit">Save settings</button> <span class="note" id="setNote"></span></div>
+    </form>
+    <h2>Folders (set in docker-compose)</h2>
+    <div class="paths" id="paths"></div>
+  </section>
+</div>
+
+<dialog id="pv">
+  <div class="pv">
+    <div class="stage" id="pvStage"></div>
+    <aside>
+      <div class="n" id="pvName"></div>
+      <dl id="pvMeta"></dl>
+      <div class="btns">
+        <a id="pvOpen" target="_blank" rel="noopener"><button style="width:100%">Open original</button></a>
+        <a id="pvDl"><button style="width:100%">Download</button></a>
+        <button class="danger" id="pvDel">Delete</button>
+        <button id="pvClose">Close</button>
+        <div class="hint">← → to browse · Del to delete · Esc to close</div>
+      </div>
+    </aside>
+  </div>
+</dialog>
+
+<script>
+"use strict";
+const $ = (s) => document.querySelector(s);
+const TZ = new Date().getTimezoneOffset();
+const enc = (rel) => rel.split("/").map(encodeURIComponent).join("/");
+const h = (tag, attrs = {}, ...kids) => {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") el.className = v;
+    else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else if (v !== null && v !== undefined && v !== false) el.setAttribute(k, v === true ? "" : v);
+  }
+  for (const c of kids.flat()) if (c !== null && c !== undefined) el.append(c.nodeType ? c : String(c));
+  return el;
+};
+const fmtBytes = (b) => {
+  if (b == null) return "–";
+  const u = ["B", "KB", "MB", "GB", "TB"]; let i = 0;
+  while (b >= 1000 && i < u.length - 1) { b /= 1000; i++; }
+  return (b >= 100 || i === 0 ? b.toFixed(0) : b >= 10 ? b.toFixed(1) : b.toFixed(2)) + " " + u[i];
+};
+const fmtDate = (t) => new Date(t * 1000).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+const fmtDateTime = (t) => new Date(t * 1000).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+const ago = (t) => {
+  const s = Math.round(Date.now() / 1000 - t);
+  if (s < 60) return s + "s ago"; if (s < 3600) return Math.round(s / 60) + "m ago";
+  if (s < 86400) return Math.round(s / 3600) + "h ago"; return Math.round(s / 86400) + "d ago";
+};
+const ext = (name) => (name.match(/\.([^.]+)$/) || ["", "?"])[1].toUpperCase();
+
+async function api(path, body) {
+  const opt = body === undefined ? {} : { method: "POST", body: JSON.stringify(body),
+    headers: { "Content-Type": "application/json", "X-Requested-With": "organizer" } };
+  const r = await fetch(path, opt);
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || r.statusText);
+  return j;
+}
+
+let toastTimer;
+function toast(msg, actionLabel, action) {
+  document.querySelectorAll(".toast").forEach((t) => t.remove());
+  const t = h("div", { class: "toast" }, h("span", {}, msg));
+  if (actionLabel) t.append(h("button", { onclick: () => { t.remove(); action(); } }, actionLabel));
+  // inside the open dialog, or the modal's top layer hides it
+  const host = document.getElementById("pv");
+  (host.open ? host : document.body).append(t);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.remove(), 6000);
+}
+
+/* ---------------------------------------------------------------- status */
+let status = null;
+async function refreshStatus() {
+  try { status = await api("/api/status?tz=" + TZ); } catch (e) { setPill("error", "offline"); return; }
+  const w = status.worker, s = status.settings;
+  const lastErr = w.last_run && w.last_run.errors;
+  if (w.phase === "sorting") setPill("sorting", "Sorting…");
+  else if (s.paused) setPill("paused", "Paused");
+  else if (lastErr) setPill("error", "Last run had errors");
+  else setPill("idle", w.next_run ? "Next sort in " + Math.max(0, Math.round(w.next_run - status.now)) + "s" : "Idle");
+  $("#btnPause").textContent = s.paused ? "Resume" : "Pause";
+
+  const today = status.daily[status.daily.length - 1];
+  $("#todayVal").textContent = fmtBytes(today.bytes);
+  const cap = s.daily_cap_gb ? s.daily_cap_gb * 1e9 : null;
+  $("#todaySub").textContent = today.files + " files" + (cap ? " · " + Math.round(100 * today.bytes / cap) + "% of " + s.daily_cap_gb + " GB budget" : "");
+  const m = $("#todayMeter"); m.hidden = !cap;
+  if (cap) {
+    const pct = today.bytes / cap;
+    m.firstElementChild.style.width = Math.min(100, pct * 100) + "%";
+    m.className = "meter" + (pct >= 1 ? " over" : pct >= .75 ? " warn" : "");
+  }
+  $("#archVal").textContent = fmtBytes(status.library.bytes);
+  $("#archSub").textContent = status.library.files.toLocaleString() + " files · indexed " + ago(status.library.scanned_at);
+  if (w.last_run) {
+    $("#runVal").textContent = w.last_run.moved + " moved";
+    $("#runSub").textContent = ago(w.last_run.finished) + " · " + fmtBytes(w.last_run.bytes) + (w.last_run.errors ? " · " + w.last_run.errors + " errors" : "");
+  }
+  $("#trashVal").textContent = fmtBytes(status.trash.bytes);
+  $("#trashSub").textContent = status.trash.count + " items" + (s.trash_retention_days ? " · auto-empties after " + s.trash_retention_days + " days" : "");
+  drawDays(status.daily, cap);
+  const p = status.paths;
+  $("#paths").replaceChildren(
+    h("div", { class: p.input_ok ? "" : "bad" }, "input   " + p.input + (p.input_ok ? "" : "  (missing)")),
+    h("div", { class: p.output_ok ? "" : "bad" }, "archive " + p.output + (p.output_ok ? "" : "  (missing)")),
+    h("div", {}, "trash   " + p.trash));
+}
+function setPill(cls, text) { const p = $("#pill"); p.className = "pill " + cls; p.lastElementChild.textContent = text; }
+function drawDays(days, cap) {
+  const max = Math.max(cap || 0, ...days.map((d) => d.bytes), 1);
+  const box = $("#days"); box.replaceChildren();
+  for (const d of days) {
+    const day = new Date(d.day_start * 1000);
+    const pct = (100 * d.bytes / max).toFixed(1);
+    box.append(h("div", { class: "d" + (cap && d.bytes > cap ? " over" : ""), title: day.toDateString() + ": " + fmtBytes(d.bytes) + ", " + d.files + " files" },
+      h("div", { style: "height:" + pct + "%" }), h("span", {}, day.toLocaleDateString(undefined, { day: "numeric", month: "numeric" }))));
+  }
+  if (cap) box.append(h("div", { class: "cap", style: "bottom:calc(" + (100 * cap / max) + "% * (90 - 17) / 90 + 17px)", title: "Daily budget" }));
+  $("#capNote").textContent = cap ? "· dashed line = " + status.settings.daily_cap_gb + " GB budget" : "";
+}
+
+$("#btnRun").onclick = async () => { await api("/api/run", {}); setPill("sorting", "Sorting…"); setTimeout(refreshAll, 1500); };
+$("#btnPause").onclick = async () => { await api("/api/settings", { paused: !status.settings.paused }); refreshStatus(); };
+
+/* ---------------------------------------------------------------- file grids */
+const lists = {
+  largest: { grid: "#lgGrid", more: "#lgMore", note: "#lgNote", win: "#lgWindow", kind: "#lgKind", sort: "size", items: [], total: 0 },
+  new: { grid: "#nwGrid", more: "#nwMore", note: "#nwNote", win: "#nwWindow", kind: "#nwKind", sort: "arrived", items: [], total: 0 },
+};
+const segVal = (sel) => $(sel + " button.on").dataset.v;
+function wireSeg(sel, onChange) {
+  $(sel).addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    $(sel).querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b)); onChange();
+  });
+}
+async function loadList(name, append = false) {
+  const L = lists[name];
+  const qs = new URLSearchParams({ sort: L.sort, kind: segVal(L.kind), limit: 60, offset: append ? L.items.length : 0 });
+  const days = segVal(L.win); if (days) qs.set("days", days);
+  const res = await api("/api/files?" + qs);
+  L.items = append ? L.items.concat(res.items) : res.items; L.total = res.total;
+  const grid = $(L.grid);
+  if (!append) grid.replaceChildren();
+  res.items.forEach((it, i) => grid.append(tile(name, it, (append ? L.items.length - res.items.length : 0) + i)));
+  if (!L.items.length) grid.replaceChildren(h("div", { class: "empty" }, "Nothing here for this window."));
+  $(L.more).hidden = L.items.length >= L.total;
+  $(L.note).textContent = res.total.toLocaleString() + " files · " + fmtBytes(res.total_bytes);
+}
+function thumbEl(it, big) {
+  const box = h("div", { class: "thumb" });
+  const ph = () => img.replaceWith(h("span", { class: "ph" }, ext(it.name)));
+  const img = h("img", { loading: "lazy", alt: "", src: "/thumb/" + enc(it.rel) + (big ? "?size=xl" : "") });
+  img.onerror = () => {
+    if (it.kind === "image" && it.previewable && !img.dataset.fallback) { img.dataset.fallback = 1; img.src = "/media/" + enc(it.rel); }
+    else ph();
+  };
+  box.append(img);
+  return box;
+}
+function tile(listName, it, idx) {
+  const t = thumbEl(it);
+  if (it.kind === "video") t.append(h("span", { class: "badge" }, "▶ " + ext(it.name)));
+  if (listName === "largest") t.append(h("span", { class: "rank" }, "#" + (idx + 1)));
+  // look the index up on click: deletes shift the array under earlier tiles
+  return h("div", { class: "tile", onclick: () => openPreview(listName, lists[listName].items.indexOf(it)) }, t,
+    h("div", { class: "meta" }, h("div", { class: "n", title: it.rel }, it.name),
+      h("div", { class: "s" }, h("b", {}, fmtBytes(it.size)), h("span", {}, listName === "new" ? ago(it.arrived) : fmtDate(it.mtime)))));
+}
+for (const name of Object.keys(lists)) {
+  const L = lists[name];
+  wireSeg(L.win, () => loadList(name)); wireSeg(L.kind, () => loadList(name));
+  $(L.more).onclick = () => loadList(name, true);
+}
+
+/* ---------------------------------------------------------------- preview */
+const pv = $("#pv");
+let cur = null; // {list, idx}
+function openPreview(list, idx) { cur = { list, idx }; renderPreview(); if (!pv.open) pv.showModal(); }
+function renderPreview() {
+  const it = lists[cur.list].items[cur.idx]; if (!it) { pv.close(); return; }
+  const url = "/media/" + enc(it.rel);
+  const stage = $("#pvStage"); stage.replaceChildren();
+  const noPreview = (why) => stage.replaceChildren(h("div", { class: "nopv" }, h("div", { style: "font-size:40px" }, ext(it.name)),
+    h("p", {}, why), h("a", { href: url + "?download=1", style: "color:#9fd" }, "Download to view")));
+  if (it.kind === "video") {
+    const v = h("video", { src: url, controls: true, autoplay: true, playsinline: true, preload: "metadata" });
+    v.onerror = () => noPreview("This browser can't play this video format.");
+    stage.append(v);
+  } else if (it.kind === "image") {
+    // originals for browser formats; Synology's big thumbnail first for HEIC/RAW, then the original (Safari reads HEIC)
+    const tries = it.previewable ? [url] : ["/thumb/" + enc(it.rel) + "?size=xl", url];
+    const img = h("img", { alt: it.name });
+    let i = 0; img.onerror = () => { i++; if (i < tries.length) img.src = tries[i]; else noPreview("No preview for this format."); };
+    img.src = tries[0]; stage.append(img);
+  } else noPreview("Not a photo or video.");
+  const L = lists[cur.list];
+  if (cur.idx > 0) stage.append(h("button", { class: "nav prev", onclick: () => step(-1), "aria-label": "Previous" }, "‹"));
+  if (cur.idx < L.items.length - 1 || L.items.length < L.total) stage.append(h("button", { class: "nav next", onclick: () => step(1), "aria-label": "Next" }, "›"));
+  $("#pvName").textContent = it.name;
+  $("#pvMeta").replaceChildren(
+    h("dt", {}, "Size"), h("dd", {}, fmtBytes(it.size)),
+    h("dt", {}, "Taken"), h("dd", {}, fmtDateTime(it.mtime)),
+    h("dt", {}, "Arrived"), h("dd", {}, fmtDateTime(it.arrived) + " (" + ago(it.arrived) + ")"),
+    h("dt", {}, "Folder"), h("dd", {}, it.rel.slice(0, -it.name.length - 1) || "/"),
+    h("dt", {}, "Position"), h("dd", {}, (cur.idx + 1) + " of " + L.total.toLocaleString()));
+  $("#pvOpen").href = url; $("#pvDl").href = url + "?download=1";
+  disarm();
+}
+async function step(d) {
+  const L = lists[cur.list]; const n = cur.idx + d;
+  if (n < 0) return;
+  if (n >= L.items.length) { if (L.items.length >= L.total) return; await loadList(cur.list, true); }
+  cur.idx = n; renderPreview();
+}
+let armTimer;
+function disarm() { const b = $("#pvDel"); b.classList.remove("armed"); b.textContent = "Delete"; clearTimeout(armTimer); }
+async function deleteCurrent() {
+  const b = $("#pvDel");
+  if (!b.classList.contains("armed")) {
+    b.classList.add("armed"); b.textContent = "Click again to move to trash";
+    armTimer = setTimeout(disarm, 4000); return;
+  }
+  const L = lists[cur.list]; const it = L.items[cur.idx];
+  b.disabled = true; b.textContent = "Deleting…";
+  stopMedia();
+  try {
+    const row = await api("/api/delete", { rel: it.rel });
+    dirty = true;
+    for (const name of Object.keys(lists)) {
+      const LL = lists[name]; const k = LL.items.findIndex((x) => x.rel === it.rel);
+      if (k >= 0) { LL.items.splice(k, 1); LL.total--; $(LL.grid).children[k]?.remove(); }
+    }
+    toast("Moved " + it.name + " to trash (" + fmtBytes(it.size) + ")", "Undo", async () => {
+      await api("/api/trash/restore", { id: row.id }); toast("Restored " + it.name); refreshAll();
+    });
+    if (cur.idx >= L.items.length) cur.idx = L.items.length - 1;
+    if (cur.idx < 0) pv.close(); else renderPreview();
+    refreshStatus();
+  } catch (e) { toast("Delete failed: " + e.message); }
+  finally { b.disabled = false; disarm(); }
+}
+function stopMedia() { const v = $("#pvStage video"); if (v) { v.pause(); v.removeAttribute("src"); v.load(); } }
+$("#pvDel").onclick = deleteCurrent;
+$("#pvClose").onclick = () => pv.close();
+let dirty = false;
+pv.addEventListener("close", () => {
+  pv.querySelectorAll(".toast").forEach((t) => document.body.append(t)); // keep Undo visible
+  stopMedia(); $("#pvStage").replaceChildren(); if (dirty) { dirty = false; loaders[tab](); } });
+pv.addEventListener("click", (e) => { if (e.target.classList.contains("stage")) pv.close(); });
+document.addEventListener("keydown", (e) => {
+  if (!pv.open) return;
+  if (e.key === "ArrowLeft") step(-1); else if (e.key === "ArrowRight") step(1);
+  else if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); deleteCurrent(); }
+});
+
+/* ---------------------------------------------------------------- trash */
+async function loadTrash() {
+  const { items } = await api("/api/trash");
+  const body = $("#trBody"); body.replaceChildren();
+  $("#trNote").textContent = items.length + " items · " + fmtBytes(items.reduce((a, r) => a + (r.size || 0), 0)) + " (still using disk space until emptied)";
+  $("#btnEmpty").disabled = !items.length;
+  if (!items.length) body.append(h("tr", {}, h("td", { colspan: 5, class: "empty" }, "Trash is empty.")));
+  for (const r of items) {
+    body.append(h("tr", {},
+      h("td", {}, h("a", { href: "/trash-media/" + r.id, target: "_blank", rel: "noopener" }, r.name)),
+      h("td", { class: "path" }, r.rel), h("td", { class: "num" }, fmtBytes(r.size)), h("td", {}, ago(r.trashed)),
+      h("td", { class: "actions" },
+        h("button", { onclick: async () => { const x = await api("/api/trash/restore", { id: r.id }); toast("Restored to " + x.rel); refreshAll(); } }, "Restore"), " ",
+        h("button", { class: "danger", onclick: async (e) => {
+          if (!confirm("Permanently delete " + r.name + "? This cannot be undone.")) return;
+          await api("/api/trash/purge", { id: r.id }); loadTrash(); refreshStatus(); } }, "Delete forever"))));
+  }
+}
+$("#btnEmpty").onclick = async () => {
+  if (!confirm("Permanently delete everything in the trash? This cannot be undone.")) return;
+  const r = await api("/api/trash/empty", {}); toast("Permanently deleted " + r.purged + " items"); loadTrash(); refreshStatus();
+};
+
+/* ---------------------------------------------------------------- activity */
+async function loadActivity() {
+  const a = await api("/api/activity");
+  const body = $("#runBody"); body.replaceChildren();
+  if (!a.runs.length) body.append(h("tr", {}, h("td", { colspan: 6, class: "empty" }, "No files moved since the dashboard started recording.")));
+  for (const r of a.runs) body.append(h("tr", { title: r.error_text || "" }, h("td", {}, fmtDateTime(r.started)),
+    h("td", { class: "num" }, r.moved), h("td", { class: "num" }, fmtBytes(r.bytes)), h("td", { class: "num" }, r.skipped),
+    h("td", { class: "num" + (r.errors ? " bad" : "") }, r.errors), h("td", {}, r.trigger)));
+  const log = $("#log"); log.replaceChildren(...a.log.map((l) => h("div", { class: l.level }, new Date(l.t * 1000).toLocaleTimeString() + "  " + l.msg)));
+  log.scrollTop = log.scrollHeight;
+}
+
+/* ---------------------------------------------------------------- settings */
+function fillSettings() {
+  const f = $("#settingsForm"), s = status.settings;
+  for (const el of f.elements) {
+    if (!el.name) continue;
+    if (el.type === "checkbox") el.checked = !!s[el.name]; else el.value = s[el.name] ?? "";
+  }
+}
+$("#settingsForm").onsubmit = async (e) => {
+  e.preventDefault();
+  const f = e.target, body = {};
+  for (const el of f.elements) {
+    if (!el.name) continue;
+    body[el.name] = el.type === "checkbox" ? el.checked : el.name === "daily_cap_gb" ? (el.value === "" ? null : Number(el.value)) : Number(el.value);
+  }
+  try { await api("/api/settings", body); $("#setNote").textContent = "Saved."; refreshStatus(); }
+  catch (err) { $("#setNote").textContent = "Error: " + err.message; }
+};
+
+/* ---------------------------------------------------------------- theme */
+const themeSel = $("#theme");
+themeSel.value = document.documentElement.dataset.theme || "auto";
+themeSel.onchange = () => {
+  const t = themeSel.value;
+  if (t === "auto") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t;
+  try { localStorage.setItem("theme", t); } catch (_) {}
+};
+
+/* ---------------------------------------------------------------- tabs */
+let tab = "largest";
+const loaders = { largest: () => loadList("largest"), new: () => loadList("new"), trash: loadTrash, activity: loadActivity, settings: fillSettings };
+$("#tabs").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  tab = b.dataset.tab;
+  $("#tabs").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
+  for (const k of Object.keys(loaders)) $("#tab-" + k).hidden = k !== tab;
+  try { localStorage.setItem("tab", tab); } catch (_) {}
+  loaders[tab]();
+});
+async function refreshAll() { await refreshStatus(); if (tab !== "settings") loaders[tab](); }
+
+(async () => {
+  await refreshStatus();
+  let saved = null; try { saved = localStorage.getItem("tab"); } catch (_) {}
+  const btn = saved && $('#tabs button[data-tab="' + saved + '"]');
+  if (btn) btn.click(); else loaders.largest();
+  setInterval(() => { if (!pv.open) refreshStatus(); }, 5000);
+  setInterval(() => { if (!pv.open && tab === "activity") loadActivity(); }, 10000);
+})();
+</script>
+</body>
+</html>
