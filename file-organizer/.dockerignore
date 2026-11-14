@@ -1,0 +1,9 @@
+# On the NAS, trash/ and config/ live next to the compose file; keep them (and the
+# trashed videos) out of the build context.
+trash/
+config/
+backup-*/
+.env
+__pycache__/
+*.log
+test_service.py

@@ -32,7 +32,7 @@ Stdlib Python, one container.
 
 ### Delete and Backblaze
 
-Deleted files go to `TRASH_DIRECTORY` (default `/volume1/docker/file-organizer/trash`), **outside
+Deleted files go to `TRASH_DIRECTORY` (default `./trash` next to `docker-compose.yml`), **outside
 the archive**. If the trash lived inside the archive, the Backblaze sync would see the delete as a
 new file and upload it again. Make sure that folder is not part of any Backblaze/Hyper Backup task.
 
@@ -76,8 +76,8 @@ trigger deletes through your browser.
 |---|---|---|
 | `/input_directory` | `/volume1/Assets/Photos/Photosync` | phone sync drop folder |
 | `/output_parent_directory` | `/volume1/Assets/Photos/Archive` | dated archive |
-| `/trash` | `/volume1/docker/file-organizer/trash` | deleted files until purged |
-| `/config` | `/volume1/docker/file-organizer/config` | `settings.json`, `organizer.db` |
+| `/trash` | `./trash` (next to the compose file) | deleted files until purged |
+| `/config` | `./config` (next to the compose file) | `settings.json`, `organizer.db` |
 
 ## Develop
 

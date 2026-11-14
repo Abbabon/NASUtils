@@ -326,8 +326,9 @@ cd /volume1/docker/<project-name>
 The file-organizer has a `docker-compose.yml` with env var defaults:
 - **Input**: `/volume1/Assets/Photos/Photosync` (recursive scan of subfolders)
 - **Output**: `/volume1/Assets/Photos/Archive` (organized into `YYYY/MM` structure; backed up to Backblaze, which has the daily upload cap)
-- **Trash**: `/volume1/docker/file-organizer/trash` (must stay outside the archive and out of the Backblaze task)
-- **Config**: `/volume1/docker/file-organizer/config`
+- **Trash**: `./trash` next to the compose file (must stay outside the archive and out of the Backblaze task)
+- **Config**: `./config` next to the compose file
+- Deploy the project folder into the NAS `docker` shared folder (check which volume it is on before using `/volume1/docker/...` paths)
 - **Dashboard**: port 8310; set `DASHBOARD_PASSWORD` in `.env`
 
 ```sh
