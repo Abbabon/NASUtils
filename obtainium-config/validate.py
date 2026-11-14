@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Validate built Obtainium packs before they ever touch a handheld.
 
-Structural checks run offline on every app. Live checks resolve GitHub releases and
-confirm the release actually carries an APK the app's filter will match.
+Structural checks run offline on every app. Live checks resolve GitHub (and Forgejo, e.g.
+Codeberg or a self-hosted instance) releases and confirm the release actually carries an APK
+the app's filter will match.
 
 Because the GitHub REST API allows only 60 unauthenticated requests/hour and a pack holds
 ~60 apps, live checks default to the locally-authored apps only. Use --scope all with a
@@ -77,15 +78,27 @@ def arch_split(apks):
     return len(tagged) >= 2
 
 
-def parse_github(url):
-    """Return (owner, repo) for a github.com project URL, else None."""
-    parts = urllib.parse.urlparse(url)
-    if parts.netloc.lower() not in ("github.com", "www.github.com"):
-        return None
+def release_source(app):
+    """Return (label, releases API URL, is_github) for a live-checkable app, else None.
+
+    Obtainium's 'Codeberg' source is its generic Forgejo source: with overrideSource set it
+    talks to whatever host the URL names, through the Gitea-compatible /api/v1 whose release
+    objects carry the same fields GitHub's do.
+    """
+    parts = urllib.parse.urlparse(app["url"])
+    host = parts.netloc.lower()
     segments = [s for s in parts.path.split("/") if s]
     if len(segments) < 2:
         return None
-    return segments[0], segments[1].removesuffix(".git")
+    owner, project = segments[0], segments[1].removesuffix(".git")
+    if host in ("github.com", "www.github.com"):
+        return (f"{owner}/{project}",
+                f"https://api.github.com/repos/{owner}/{project}/releases?per_page=100", True)
+    if app.get("overrideSource") == "Codeberg" or host in ("codeberg.org", "www.codeberg.org"):
+        # Gitea/Forgejo cap a page at 50 by default.
+        return (f"{host}/{owner}/{project}",
+                f"https://{host}/api/v1/repos/{owner}/{project}/releases?limit=50", False)
+    return None
 
 
 def check_structure(profile, apps, findings):
@@ -140,25 +153,24 @@ def check_structure(profile, apps, findings):
 
 
 def check_release(profile, app, findings, token=None):
-    """Resolve a GitHub app's latest release and confirm a matching APK exists."""
+    """Resolve a GitHub/Forgejo app's latest release and confirm a matching APK exists."""
     name = app.get("name", "<unnamed>")
-    repo = parse_github(app["url"])
-    if repo is None:
+    source = release_source(app)
+    if source is None:
         return "skipped"
 
-    owner, project = repo
+    repo, api_url, is_github = source
     try:
-        releases, headers = api_get(
-            f"https://api.github.com/repos/{owner}/{project}/releases?per_page=100", token
-        )
+        # The GitHub token is never sent to any other host.
+        releases, headers = api_get(api_url, token if is_github else None)
     except urllib.error.HTTPError as exc:
         if exc.code == 403 and "rate limit" in str(exc.headers.get("x-ratelimit-remaining", "")):
             findings.warn(profile, name, "GitHub rate limit hit - set GITHUB_TOKEN")
             return "ratelimited"
         if exc.code == 404:
-            findings.error(profile, name, f"repo not found: {owner}/{project}")
+            findings.error(profile, name, f"repo not found: {repo}")
             return "failed"
-        findings.warn(profile, name, f"GitHub API {exc.code} for {owner}/{project}")
+        findings.warn(profile, name, f"release API {exc.code} for {repo}")
         return "failed"
     except urllib.error.URLError as exc:
         findings.warn(profile, name, f"network error: {exc.reason}")
@@ -196,7 +208,7 @@ def check_release(profile, app, findings, token=None):
 
     if not candidates:
         if not releases:
-            findings.error(profile, name, f"{owner}/{project} has no releases")
+            findings.error(profile, name, f"{repo} has no releases")
         elif title_filter or notes_filter:
             findings.error(
                 profile, name,

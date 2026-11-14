@@ -152,6 +152,20 @@
       }
     },
     {
+      "slug": "citron-neo-forgejo",
+      "profiles": ["*"],
+      "match": { "id": "org.citron.citron_emu" },
+      "reason": "Citron NEO left GitHub in 2026-11: github.com/citron-neo/emulator now 404s (Obtainium can no longer update it and validate.py fails), and releases moved to the project's own Forgejo instance (RJNY/Obtainium-Emulation-Pack#225, not yet fixed upstream as of v8.0.1). Obtainium's 'Codeberg' source is the generic Forgejo source and accepts any host when overrideSource is set. Each release ships app-mainline-release.apk plus a Snapdragon 8 Elite-only build (Citron-<n>-Android-8.Elite-Lyb.apk); none of the Thor / Odin 2 / Nova is an 8 Elite, so pin the mainline APK instead of trusting asset order. Drop this rule once upstream points at the new host.",
+      "patch": {
+        "url": "https://git.mythrax-rs.org/Citron-NEO/emulator",
+        "author": "Citron-NEO",
+        "overrideSource": "Codeberg",
+        "additionalSettings": {
+          "apkFilterRegEx": "^app-mainline-release\\.apk$"
+        }
+      }
+    },
+    {
       "slug": "armsx2-android13-apk",
       "profiles": ["nova"],
       "match": { "id": "com.armsx2" },
