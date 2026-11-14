@@ -17,6 +17,9 @@ services:
     environment:
       - TZ=${TZ}
       - DASHBOARD_PASSWORD=${DASHBOARD_PASSWORD:-}
+      # For the dashboard's "Show in Finder" / "Copy path" buttons
+      - ARCHIVE_HOST_PATH=${OUTPUT_DIRECTORY:-/volume1/Assets/Photos/Archive}
+      - ARCHIVE_SHARE=${ARCHIVE_SHARE:-}
     logging:
       driver: "json-file"
       options:

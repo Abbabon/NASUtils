@@ -7,6 +7,8 @@ Environment (container defaults in brackets):
   CONFIG_DIR           settings.json + organizer.db           [/config]
   PORT                 dashboard port                         [8310]
   DASHBOARD_PASSWORD   if set, HTTP basic auth (any username) [unset = no auth]
+  ARCHIVE_HOST_PATH    archive path on the NAS, used to build Finder/Explorer links
+  ARCHIVE_SHARE        override for those links, e.g. //nas/Assets/Photos/Archive
 """
 import base64
 import hmac
@@ -14,6 +16,7 @@ import json
 import logging
 import mimetypes
 import os
+import re
 import sys
 import threading
 import time
@@ -317,6 +320,8 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/healthz":  # for the Docker healthcheck; no auth, no data
             alive = self.app.worker.is_alive()
             return self.send_json({"ok": alive}, HTTPStatus.OK if alive else HTTPStatus.SERVICE_UNAVAILABLE)
+        if self.path in ("/favicon.svg", "/favicon.ico"):  # no auth: the tab icon shows before login
+            return self.send_file(STATIC_DIR / "favicon.svg")
         if not self.authorized():
             return
         url = urlparse(self.path)
@@ -420,8 +425,26 @@ class Handler(BaseHTTPRequestHandler):
             "trash": {"count": len(trash), "bytes": sum(r["size"] or 0 for r in trash)},
             "paths": {"input": str(INPUT_DIR), "output": str(OUTPUT_DIR), "trash": str(TRASH_DIR),
                       "input_ok": INPUT_DIR.is_dir(), "output_ok": OUTPUT_DIR.is_dir()},
+            "share": archive_share(),
             "now": time.time(),
         }
+
+
+def archive_share():
+    """Where the archive is on the network, for the "Show in Finder" / "Copy path" buttons.
+
+    ARCHIVE_SHARE ("//host/Share/sub/dir") wins. Otherwise the share path comes from the
+    archive's host path (/volumeN/Assets/Photos/Archive -> Assets/Photos/Archive, Synology
+    shares are top-level folders of a volume) and the browser fills in the host it used.
+    """
+    explicit = os.environ.get("ARCHIVE_SHARE", "").strip().replace("\\", "/").strip("/")
+    if explicit:
+        host, _, path = explicit.partition("/")
+        return {"host": host or None, "path": path}
+    host_path = os.environ.get("ARCHIVE_HOST_PATH", "").strip()
+    if not host_path:
+        return None
+    return {"host": None, "path": re.sub(r"^/volume[^/]*/", "", host_path).strip("/")}
 
 
 def _quote(s):

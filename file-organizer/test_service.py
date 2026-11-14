@@ -19,7 +19,8 @@ sys.path.insert(0, str(HERE))
 
 TMP = Path(tempfile.mkdtemp(prefix="organizer-test-"))
 os.environ.update(INPUT_DIR=str(TMP / "in"), OUTPUT_DIR=str(TMP / "archive"), TRASH_DIR=str(TMP / "trash"),
-                  CONFIG_DIR=str(TMP / "config"), PORT="0")
+                  CONFIG_DIR=str(TMP / "config"), PORT="0",
+                  ARCHIVE_HOST_PATH="/volume9/Assets/Photos/Archive", ARCHIVE_SHARE="")
 
 import filesOrganizer as fo  # noqa: E402
 import library  # noqa: E402
@@ -191,6 +192,17 @@ class Dashboard(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn(b"Photo Organizer", body)
         self.assertEqual(self.getj("/healthz"), {"ok": True})
+        status, headers, body = self.get("/favicon.svg")
+        self.assertEqual(headers["Content-Type"], "image/svg+xml")
+        self.assertIn(b"<svg", body)
+
+    def test_07_share_location(self):
+        self.assertEqual(self.getj("/api/status")["share"], {"host": None, "path": "Assets/Photos/Archive"})
+        os.environ["ARCHIVE_SHARE"] = "\\\\nas\\Assets\\Photos\\Archive"
+        try:
+            self.assertEqual(service.archive_share(), {"host": "nas", "path": "Assets/Photos/Archive"})
+        finally:
+            os.environ["ARCHIVE_SHARE"] = ""
 
 
 if __name__ == "__main__":

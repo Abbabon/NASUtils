@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Photo Organizer: a photo (sun over hills) with a down arrow into the archive -->
+  <rect width="64" height="64" rx="14" fill="#2f6f5e"/>
+  <rect x="10" y="12" width="44" height="34" rx="5" fill="#f6f5f2"/>
+  <circle cx="22" cy="23" r="4.5" fill="#e8a33d"/>
+  <path d="M10 41 L24 29 L33 37 L40 31 L54 42 L54 41 Q54 46 49 46 L15 46 Q10 46 10 41 Z" fill="#6fb7a1"/>
+  <path d="M32 47 V57 M26.5 52 L32 57.5 L37.5 52" fill="none" stroke="#f6f5f2" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
