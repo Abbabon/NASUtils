@@ -215,10 +215,12 @@ def api_key():
     return k
 
 
-def transcribe(key, url, speakers, keyterms):
+def transcribe(key, url, speakers, keyterms, language):
     """One synchronous request; ElevenLabs fetches source_url itself. Returns the parsed JSON."""
-    fields = [("model_id", MODEL), ("source_url", url), ("language_code", "heb"), ("diarize", "true"),
+    fields = [("model_id", MODEL), ("source_url", url), ("diarize", "true"),
               ("timestamps_granularity", "word"), ("tag_audio_events", "false")]
+    if language != "auto":
+        fields.append(("language_code", language))
     if speakers:
         fields.append(("num_speakers", str(speakers)))
     fields += [("keyterms", k) for k in keyterms]
@@ -245,6 +247,7 @@ def main():
     ap.add_argument("--guest-speakers", type=int, default=0, help="speaker cap for --guests episodes (default 0 = auto; e.g. 3 for host+host+guest)")
     ap.add_argument("--guests", default="Conference", help="regex on the title: matching episodes have guests, so speaker count is auto (default 'Conference')")
     ap.add_argument("--keyterms", type=Path, help="file with one term per line (<=5 words each); +20%% cost")
+    ap.add_argument("--language", default="heb", help="Scribe language_code (default heb; 'auto' = let Scribe detect)")
     ap.add_argument("--season", help="only episodes with this itunes:season (e.g. 1)")
     ap.add_argument("--context", type=Path, help="text file with show-specific facts for the polish prompt (show/host names, spellings)")
     ap.add_argument("--polish", action="store_true", help="LLM-clean transcripts via `claude -p` (names/terms/numbers + speaker names)")
@@ -285,7 +288,7 @@ def main():
             try:
                 log.info("[%d/%d] transcribing %s", i, len(todo), e["stem"])
                 cap = a.guest_speakers if re.search(a.guests, e["title"]) else a.speakers
-                raw = transcribe(key, e["url"], cap, keyterms)
+                raw = transcribe(key, e["url"], cap, keyterms, a.language)
                 tmp = raw_dir / f"{e['stem']}.json.part"
                 tmp.write_text(json.dumps(raw, ensure_ascii=False), "utf-8")
                 tmp.rename(raw_dir / f"{e['stem']}.json")

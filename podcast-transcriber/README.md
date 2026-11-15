@@ -12,7 +12,7 @@ python test_podcast_transcriber.py                                  # self-check
 ```
 
 Options: `--only TEXT`, `--season N` (itunes:season), `--limit N`, `--shortest`, `--speakers N` (default 2,
-0 = auto), `--guests REGEX` (titles matching it have guests and always use auto speakers; default `Conference`. The speaker cap is wrong for episodes with a third voice, so match your guest-episode titles), `--keyterms FILE`,
+0 = auto), `--guests REGEX` (titles matching it have guests and always use auto speakers; default `Conference`. The speaker cap is wrong for episodes with a third voice, so match your guest-episode titles), `--keyterms FILE`, `--language CODE` (default `heb`; use `auto` for a feed or episodes in another language, so Scribe detects it instead of forcing Hebrew),
 `--guest-speakers N` (speaker cap for `--guests` titles; default 0 = auto, use 3 when auto merges voices), `--context FILE`, `--polish`, `--rerender`, `--log-file`.
 
 Resuming later is just re-running the same command with another `--season` (or none): episodes whose raw
@@ -57,6 +57,50 @@ dropped: only exact `old` to `new` edits are applied. Long episodes are split in
 - Unresolved speakers and uncertain spellings are logged as `needs review` and stored under `review`; fill
   `speakers.json` by hand and `--rerender`.
 - To get the unpolished note back, move `polished/` away and `--rerender`.
+
+## Name review pass
+
+Polish guesses at uncertain names and terms, and some guesses are wrong (for example a company name
+"corrected" to a different company). After `--polish`, review the `needs review [<episode>]: ...`
+warnings. The same items are in the `review` list of each `polished/<stem>.json`.
+
+Give an agent with web access (for example Claude Code with web search) the review list, the
+`--context` and `--keyterms` files and the episode notes. The feed's episode descriptions are the first
+source for names; web search covers the rest. The agent only proposes and edits nothing. It sorts each item into:
+
+- **Apply**: the exact current substring, its replacement and the evidence, checked to occur in the note.
+- **Keep as is**: the transcript is right.
+- **Unresolved**: a best guess, for the host to answer.
+
+It also lists polish edits that look wrong. Apply the fixes after any running transcription finishes.
+
+Example prompt:
+
+```
+Review these name/term warnings from the transcript polish step: <paste warnings>.
+Read CONTEXT.md, KEYTERMS.md and the notes in OUT_DIR. Check names against the episode descriptions first,
+then the web. Edit nothing. For each item answer Apply (exact current substring in the note -> replacement,
+evidence, confirmed to occur in the note), Keep as is, or Unresolved (best guess, for the host). Also list
+existing edits in polished/*.json whose `new` is wrong.
+```
+
+### Applying the fixes
+
+Edit `polished/<stem>.json`, not the `.md` note, then run the same command with `--rerender`. Notes are
+rebuilt from the raw JSON plus these edits, so a fix made in the `.md` is lost on the next re-render. Each
+entry of the `edits` list has three fields:
+
+```json
+{"turn": 12, "old": "exact substring of that turn", "new": "replacement"}
+```
+
+- `turn` is the zero-based index of the speaker turn, counting the `**Name** [m:ss]: ...` lines in the note
+  from the first. It is not printed in the note.
+- Every occurrence of `old` in that turn is replaced. A name spoken in several turns needs one entry per turn.
+- To undo a wrong polish edit, delete its entry or change its `new`.
+- `--rerender` does not validate edits. An `old` that is not in the turn does nothing, and a missing field
+  raises `KeyError`. Check each `old` against the note before rendering.
+- `--polish` skips episodes whose polished file exists, so manual edits are kept.
 
 ## Behaviour
 
