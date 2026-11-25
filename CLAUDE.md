@@ -94,6 +94,7 @@ Stdlib only. The container runs `service.py`: the sort loop plus a dashboard on 
 - **test_podcast_maker.py** - Self-check of parsing, chunking and cache keys (`python test_podcast_maker.py`)
 - **README.md** - Script format, usage, caching behaviour
 - Scripts and outputs live outside the repo.
+- A `podcast-digest` project skill (`.claude/skills/podcast-digest/`) chains transcriber and maker: episode page URL to transcript, vault digest and chat summary, plus an audio explainer only on request. Reads `VAULT_DIR` from the root `.env`; `check_script.py` checks scripts against the vault's pronunciation dictionary before rendering.
 
 ### Keyboard Shortcuts (`keyboard-shortcuts/` directory)
 - **shortcuts.lua** - Hammerspoon config module with custom macOS shortcuts, loaded from `~/.hammerspoon/init.lua` via `dofile`. `ctrl+shift+cmd+Right` / `Left` move the focused window to the next / previous Space and follow it, doing nothing at either end (title-bar drag plus the system `ctrl+Right`/`ctrl+Left` shortcut, since `hs.spaces.moveWindowToSpace` is broken on macOS 14.5+)
