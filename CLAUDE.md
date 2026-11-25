@@ -89,6 +89,12 @@ Stdlib only. The container runs `service.py`: the sort loop plus a dashboard on 
 - **README.md** - Usage, output layout, `speakers.json` format, polish behaviour, cost notes
 - Show-specific inputs (keyterms, context, speakers, outputs) live outside the repo.
 
+### Podcast Maker (`podcast-maker/` directory)
+- **podcast_maker.py** - Renders a hand-written script (`@voice A = <id>` lines plus `A: text` turns; one or two speakers) to one MP3 with ElevenLabs Text to Dialogue (`eleven_v4`, Hebrew). Packs turns into chunks under the 2,000-char request limit, caches each chunk's audio by a hash of model/voices/text (so edits only re-bill changed chunks), joins with ffmpeg. `--dry-run` prints chunk count, chars and estimated credits. Key: `ELEVENLABS_API_KEY` from env or root `.env`. Stdlib only.
+- **test_podcast_maker.py** - Self-check of parsing, chunking and cache keys (`python test_podcast_maker.py`)
+- **README.md** - Script format, usage, caching behaviour
+- Scripts and outputs live outside the repo.
+
 ### Keyboard Shortcuts (`keyboard-shortcuts/` directory)
 - **shortcuts.lua** - Hammerspoon config module with custom macOS shortcuts, loaded from `~/.hammerspoon/init.lua` via `dofile`. `ctrl+shift+cmd+Right` / `Left` move the focused window to the next / previous Space and follow it, doing nothing at either end (title-bar drag plus the system `ctrl+Right`/`ctrl+Left` shortcut, since `hs.spaces.moveWindowToSpace` is broken on macOS 14.5+)
 - **README.md** - Install, prerequisites (Accessibility permission, Mission Control "Move left/right a space" enabled), and how to add shortcuts
@@ -206,6 +212,9 @@ youtube-downloader/prolonged/prolonged.sh install harmontown-audio   # job confi
 # Transcribe a podcast feed (dry-run first; keyterms/context files are kept outside the repo)
 python podcast-transcriber/podcast_transcriber.py FEED_URL OUT_DIR --season 1 --dry-run
 python podcast-transcriber/podcast_transcriber.py FEED_URL OUT_DIR --season 1 --keyterms KEYTERMS.md --context CONTEXT.md --polish
+
+# Render a script to MP3 (dry-run first; scripts and cache stay outside the repo)
+python podcast-maker/podcast_maker.py SCRIPT.txt OUT.mp3 --cache-dir CACHE_DIR --dry-run
 
 # Start changes detector service
 cd changes-detector && docker compose up -d
