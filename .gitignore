@@ -26,3 +26,6 @@ exports/
 
 # obtainium-config: cached upstream release assets
 obtainium-config/.cache/
+
+# calibre-import: local work dir (exports, journal, caches, batches)
+calibre-import/work/

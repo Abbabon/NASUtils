@@ -119,6 +119,13 @@ Generates per-device [Obtainium](https://github.com/ImranR98/Obtainium) app pack
 - **.cache/** - Gitignored upstream release assets
 - CI: `.github/workflows/obtainium-config.yaml` (weekly upstream bump + commit; on-push staleness gate)
 
+### Calibre Import (`calibre-import/` directory)
+Metadata enrichment for a live Calibre library in a Docker container on the NAS. Runs on the Mac over ssh + `docker exec`, writes only through the content server (`calibredb --with-library http://...`), never to `metadata.db`. Stdlib only. Reads `NAS_USER`, `NAS_IP`, `CALIBRE_PASSWORD` from the root `.env`; the password goes over stdin (`--password <f:/dev/stdin>`), never argv.
+- **calibre_import.py** - Subcommands `backup`, `export`, `cleanup`, `lookup`, `excerpt`, `apply`, `correct` (replace wrong values, stale-checked), `report`. pipeline order cleanup -> agent -> lookup (`lookup --after agent.jsonl`); `apply` is dry-run unless `--apply`, needs a backup younger than 24h, fills empty fields only, gates on confidence 0.8 (below: `#needs_review`), journals every change to `work/journal.jsonl`
+- **test_calibre_import.py** - Self-check of the pure logic (`python test_calibre_import.py`)
+- **README.md** - Usage order, proposal file format (agents write it by hand), rules
+- **work/** - Gitignored: export, baseline, journal, lookup cache, proposals, excerpt batches
+
 ### ROM Management Suite (`roms/` directory)
 - **countRoms.py** - Counts ROM files by extension across directories
 - **organizeRoms.py** - Automatically organizes ROM files into system-specific subdirectories based on file extensions
