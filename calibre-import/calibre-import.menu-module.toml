@@ -1,0 +1,27 @@
+# Contract: https://github.com/Abbabon/menu-services/blob/main/SPEC.md
+contract = 1
+id = "calibre-import"
+name = "Calibre Import"
+icon = "books.vertical"
+run = ["python3", "import_worker.py"]
+# The worker needs `claude` (~/.local/bin) on PATH.
+env = { PATH = "~/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin" }
+stale_after_sec = 120
+
+# NAS address and Calibre password live in the repo-root .env (gitignored); work/ holds the journal.
+migrate = ["../.env", "work"]
+migrate_notes = [
+  "ssh key access to the NAS must work from the new Mac (ssh-copy-id), and `claude` must be signed in.",
+]
+
+[[actions]]
+title = "Import Books…"
+exec = ["python3", "import_worker.py", "pick"]
+
+[[actions]]
+title = "Retry Now"
+signal = "USR1"
+
+[[actions]]
+title = "Open Queue Folder"
+open = "~/.local/state/menu-services/calibre-import"

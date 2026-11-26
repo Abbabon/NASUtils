@@ -74,6 +74,19 @@ Only include fields you actually know. For junk authors (Unknown, Administrator,
 - Summary: `applied / stale / below-threshold / invalid / noop / missing`; dry run prints `id field: old -> new`.
 - `lookup` proposals also carry `lookup_authors` (what the online source returned) for cross-checking against agent proposals; `apply` ignores it.
 
+## Import new books (Menu Services module)
+
+`calibre-import.menu-module.toml` runs `import_worker.py` under [Menu Services](https://github.com/Abbabon/menu-services). Install it once with `menu-services install calibre-import/calibre-import.menu-module.toml`.
+
+- **Import Books…** opens a file dialog (any format Calibre reads, several files at once). `python import_worker.py add FILE...` queues without the dialog.
+- Each file is copied into `~/.local/state/menu-services/calibre-import/queue/`, so the original can move and the NAS can be away. While ssh, the container or the content server does not answer, jobs wait and the menu shows `NAS unreachable · N queued`; the worker checks again every 60 s.
+- Per book: upload into the container's `/tmp`, `calibredb add`, then the same pipeline as above on that one book: cleanup, excerpt, a headless `claude -p` proposal (web search and fetch only, no file tools, model `CALIBRE_AGENT_MODEL`, default `sonnet`), lookup. All writes use `apply`, so the rules, the 24h backup (taken when missing) and the journal are the same.
+- A finished step is not repeated on retry. A failure while the NAS is reachable counts as an attempt; after 3 the job moves to `failed/` and a notification shows the error. **Retry Now** puts failed jobs back. A book Calibre refuses as a duplicate fails at once. Delete a job's folder to drop it.
+- The menu lists the last six results. Low-confidence proposals get the `needs-review` tag, as in `apply`.
+
 ## Check
+
+`python test_import_worker.py` runs the queue with the NAS faked (retry, attempts, duplicate, status file).
+
 
 `python test_calibre_import.py` asserts the pure logic (ISBN validation, title cleaning, fill-empty-only merge, junk authors, title precedence, lookup confidence, excerpt scrubbing, confidence gate).

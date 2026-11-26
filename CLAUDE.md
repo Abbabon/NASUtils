@@ -123,6 +123,8 @@ Generates per-device [Obtainium](https://github.com/ImranR98/Obtainium) app pack
 Metadata enrichment for a live Calibre library in a Docker container on the NAS. Runs on the Mac over ssh + `docker exec`, writes only through the content server (`calibredb --with-library http://...`), never to `metadata.db`. Stdlib only. Reads `NAS_USER`, `NAS_IP`, `CALIBRE_PASSWORD` from the root `.env`; the password goes over stdin (`--password <f:/dev/stdin>`), never argv.
 - **calibre_import.py** - Subcommands `backup`, `export`, `cleanup`, `lookup`, `excerpt`, `apply`, `correct` (replace wrong values, stale-checked), `report`. pipeline order cleanup -> agent -> lookup (`lookup --after agent.jsonl`); `apply` is dry-run unless `--apply`, needs a backup younger than 24h, fills empty fields only, gates on confidence 0.8 (below: `#needs_review`), journals every change to `work/journal.jsonl`
 - **test_calibre_import.py** - Self-check of the pure logic (`python test_calibre_import.py`)
+- **import_worker.py** + **calibre-import.menu-module.toml** - Menu Services module that imports new books: `pick` (file dialog) or `add FILE...` copies files into a queue under `~/.local/state/menu-services/calibre-import/`; the worker uploads, runs `calibredb add`, then cleanup -> excerpt -> headless `claude -p` (web tools only) -> lookup through `apply`. Jobs wait while the NAS is unreachable; 3 failed attempts move a job to `failed/` (Retry Now requeues)
+- **test_import_worker.py** - Self-check of the queue with the NAS faked (`python test_import_worker.py`)
 - **README.md** - Usage order, proposal file format (agents write it by hand), rules
 - **work/** - Gitignored: export, baseline, journal, lookup cache, proposals, excerpt batches
 
